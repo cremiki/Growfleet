@@ -34,6 +34,7 @@ export const users = app.table("users", {
   role: text("role").$type<Role>().notNull(),
   customerId: integer("customer_id").references(() => customers.id, { onDelete: "cascade" }),
   blocked: boolean("blocked").default(false).notNull(),
+  canEdit: boolean("can_edit").default(true).notNull(), // utente cliente: false = sola consultazione
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -63,6 +64,8 @@ export const vehicles = app.table("vehicles", {
   ecoSpeed: integer("eco_speed"),
   longStopMin: integer("long_stop_min"),
   driverId: integer("driver_id"),
+  odoOffsetBy: text("odo_offset_by"), // chi ha impostato la correzione e quando
+  odoOffsetAt: timestamp("odo_offset_at", { withTimezone: true }),
   odoOffsetKm: doublePrecision("odo_offset_km"), // correzione: contachilometri reale = valore del dispositivo + offset
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -182,6 +185,9 @@ CREATE TABLE IF NOT EXISTS growfleet.vehicle_reminders (
 CREATE INDEX IF NOT EXISTS vehicle_reminders_device_idx ON growfleet.vehicle_reminders (device_id);
 ALTER TABLE growfleet.vehicles ADD COLUMN IF NOT EXISTS driver_id INTEGER;
 ALTER TABLE growfleet.vehicles ADD COLUMN IF NOT EXISTS odo_offset_km DOUBLE PRECISION;
+ALTER TABLE growfleet.vehicles ADD COLUMN IF NOT EXISTS odo_offset_by TEXT;
+ALTER TABLE growfleet.vehicles ADD COLUMN IF NOT EXISTS odo_offset_at TIMESTAMPTZ;
+ALTER TABLE growfleet.users ADD COLUMN IF NOT EXISTS can_edit BOOLEAN NOT NULL DEFAULT true;
 ALTER TABLE growfleet.vehicle_reminders ADD COLUMN IF NOT EXISTS start_km DOUBLE PRECISION;
 ALTER TABLE growfleet.vehicle_reminders ADD COLUMN IF NOT EXISTS interval_km DOUBLE PRECISION;
 ALTER TABLE growfleet.vehicle_reminders ADD COLUMN IF NOT EXISTS start_hours DOUBLE PRECISION;

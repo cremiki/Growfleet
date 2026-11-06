@@ -25,7 +25,7 @@ export default async function EditUserPage({ params }: { params: Promise<{ id: s
           {u.blocked ? "Account bloccato. " : ""}Ultimo accesso: {u.lastLoginAt ? u.lastLoginAt.toLocaleString("it-IT", { timeZone: "Europe/Rome", dateStyle: "short", timeStyle: "short" }) : "mai"}.
         </p>
         <EditUserForm
-          user={{ id: u.id, name: u.name, email: u.email, role: u.role, customerId: u.customerId }}
+          user={{ id: u.id, name: u.name, email: u.email, role: u.role, customerId: u.customerId, canEdit: u.canEdit }}
           customers={customers.map((c) => ({ id: c.id, name: c.name }))}
           isSelf={u.id === me.uid}
         />

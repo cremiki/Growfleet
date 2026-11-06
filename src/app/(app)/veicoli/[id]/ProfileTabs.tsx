@@ -16,9 +16,9 @@ type Rem = {
   progress: { km: number | null; hours: number | null; date: number | null }; overall: number | null;
 };
 
-type Props = { deviceId: number; isAdmin: boolean; profile: VehicleProfile | null; reminders: Rem[]; odometer: number | null; hours: number | null };
+type Props = { deviceId: number; canEdit: boolean; profile: VehicleProfile | null; reminders: Rem[]; odometer: number | null; hours: number | null };
 
-export function ProfileTabs({ deviceId, isAdmin, profile, reminders, odometer, hours }: Props) {
+export function ProfileTabs({ deviceId, canEdit, profile, reminders, odometer, hours }: Props) {
   const [tab, setTab] = useState<"spec" | "manutenzione" | "documento">("spec");
   const tabs = [
     ["spec", "Specifica"],
@@ -36,19 +36,19 @@ export function ProfileTabs({ deviceId, isAdmin, profile, reminders, odometer, h
         ))}
       </div>
       <div className="bg-surface border border-t-0 border-line p-5">
-        {tab === "spec" ? <Spec p={profile} isAdmin={isAdmin} deviceId={deviceId} />
-          : <Reminders kind={tab} deviceId={deviceId} isAdmin={isAdmin} items={reminders.filter((r) => r.kind === tab)} odometer={odometer} hours={hours} />}
+        {tab === "spec" ? <Spec p={profile} canEdit={canEdit} deviceId={deviceId} />
+          : <Reminders kind={tab} deviceId={deviceId} canEdit={canEdit} items={reminders.filter((r) => r.kind === tab)} odometer={odometer} hours={hours} />}
       </div>
     </section>
   );
 }
 
-function Spec({ p, isAdmin, deviceId }: { p: VehicleProfile | null; isAdmin: boolean; deviceId: number }) {
+function Spec({ p, canEdit, deviceId }: { p: VehicleProfile | null; canEdit: boolean; deviceId: number }) {
   if (!p) {
     return (
       <p className="text-muted">
         L&apos;anagrafica di questo veicolo è ancora vuota.
-        {isAdmin && <> <a href={`/veicoli/${deviceId}/modifica`} className="text-sign hover:underline">Completa l&apos;anagrafica</a> per mostrare targa, modello e tipo in mappa e nei report.</>}
+        {canEdit && <> <a href={`/veicoli/${deviceId}/modifica`} className="text-sign hover:underline">Completa l&apos;anagrafica</a> per mostrare targa, modello e tipo in mappa e nei report.</>}
       </p>
     );
   }
@@ -92,8 +92,8 @@ function Spec({ p, isAdmin, deviceId }: { p: VehicleProfile | null; isAdmin: boo
 const today = () => new Date().toISOString().slice(0, 10);
 const dateIt = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("it-IT");
 
-function Reminders({ kind, deviceId, isAdmin, items, odometer, hours }: {
-  kind: "manutenzione" | "documento"; deviceId: number; isAdmin: boolean; items: Rem[]; odometer: number | null; hours: number | null;
+function Reminders({ kind, deviceId, canEdit, items, odometer, hours }: {
+  kind: "manutenzione" | "documento"; deviceId: number; canEdit: boolean; items: Rem[]; odometer: number | null; hours: number | null;
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(addReminder, {});
   const [open, setOpen] = useState(false);
@@ -111,7 +111,7 @@ function Reminders({ kind, deviceId, isAdmin, items, odometer, hours }: {
             : "Assicurazione, bollo, revisione e altri documenti con scadenza."}
           {" "}Diventano gialli entro 30 giorni, 1.000 km o 50 ore dalla scadenza.
         </p>
-        {isAdmin && !open && (
+        {canEdit && !open && (
           <button type="button" onClick={() => setOpen(true)} className="bg-sign hover:bg-sign-dark text-white rounded px-3 py-1.5 text-sm font-semibold whitespace-nowrap">
             {isMaint ? "Aggiungi manutenzione" : "Aggiungi scadenza"}
           </button>
@@ -177,7 +177,7 @@ function Reminders({ kind, deviceId, isAdmin, items, odometer, hours }: {
         <p className="mt-4 text-muted">{isMaint ? "Nessuna manutenzione programmata." : "Nessuna scadenza registrata."}</p>
       ) : (
         <ul className="mt-4 divide-y divide-line border border-line">
-          {sorted.map((r) => <ReminderRow key={r.id} r={r} deviceId={deviceId} isAdmin={isAdmin} odometer={odometer} hours={hours} />)}
+          {sorted.map((r) => <ReminderRow key={r.id} r={r} deviceId={deviceId} canEdit={canEdit} odometer={odometer} hours={hours} />)}
         </ul>
       )}
     </div>
@@ -196,7 +196,7 @@ function Bar({ value, color, label }: { value: number; color: string; label: str
   );
 }
 
-function ReminderRow({ r, deviceId, isAdmin, odometer, hours }: { r: Rem; deviceId: number; isAdmin: boolean; odometer: number | null; hours: number | null }) {
+function ReminderRow({ r, deviceId, canEdit, odometer, hours }: { r: Rem; deviceId: number; canEdit: boolean; odometer: number | null; hours: number | null }) {
   const color = REMINDER_COLOR[r.status];
   const every = [r.intervalKm && `${fmtInt(r.intervalKm)} km`, r.intervalHours && `${fmtInt(r.intervalHours)} ore`, r.intervalMonths && `${r.intervalMonths} mesi`].filter(Boolean).join(" o ");
   const left = [
@@ -230,7 +230,7 @@ function ReminderRow({ r, deviceId, isAdmin, odometer, hours }: { r: Rem; device
         )}
       </div>
       <div className="text-sm whitespace-nowrap">
-        {isAdmin && (
+        {canEdit && (
           <span className="inline-flex flex-col items-end gap-1.5">
             {!r.done && (
               <form action={completeReminder}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="deviceId" value={deviceId} />

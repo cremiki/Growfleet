@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { asc, isNotNull } from "drizzle-orm";
-import { requireSession, scopeFor } from "@/lib/auth/session";
+import { canEdit, ownsDriver, requireSession, scopeFor } from "@/lib/auth/session";
 import { getDb, schema } from "@/lib/db";
 import { fleet } from "@/lib/flespi";
 import { reminderState, REMINDER_COLOR } from "@/lib/reminders";
@@ -13,6 +13,7 @@ export default async function DriversPage() {
   const scope = await scopeFor(s);
   const db = await getDb();
   const isAdmin = s.role === "admin";
+  const editable = await canEdit(s);
   const [all, customers, assigned, visible] = await Promise.all([
     db.select().from(schema.drivers).orderBy(asc(schema.drivers.name)),
     db.select().from(schema.customers).orderBy(asc(schema.customers.name)),
@@ -38,10 +39,10 @@ export default async function DriversPage() {
           <div className="mt-4 bg-surface border border-line overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-asphalt/60 text-left">
-                <tr>{["Nome", "Codice", "Telefono", "Veicolo attuale", "Patente", "Cliente", "App", ""].map((h, i) => <th key={i} className="px-3 py-2 font-semibold whitespace-nowrap">{h}</th>)}</tr>
+                <tr>{["Nome", "Codice", "Telefono", "Veicolo attuale", "Patente", ...(isAdmin ? ["Cliente"] : []), "App", ""].map((h, i) => <th key={i} className="px-3 py-2 font-semibold whitespace-nowrap">{h}</th>)}</tr>
               </thead>
               <tbody>
-                {list.length === 0 && <tr><td colSpan={8} className="px-3 py-6 text-muted">{isAdmin ? "Nessun autista: aggiungi il primo con il modulo a destra." : "Nessun autista."}</td></tr>}
+                {list.length === 0 && <tr><td colSpan={8} className="px-3 py-6 text-muted">{editable ? "Nessun autista: aggiungi il primo con il modulo a destra." : "Nessun autista."}</td></tr>}
                 {list.map((d) => {
                   const v = vehicleOf(d.id);
                   const lic = d.licenseExpiry ? reminderState({ dueDate: d.licenseExpiry, dueKm: null, dueHours: null, doneAt: null }, null, null) : null;
@@ -63,9 +64,9 @@ export default async function DriversPage() {
                         )}
                         {!d.licenseCategories && !d.licenseExpiry && "—"}
                       </td>
-                      <td className="px-3 py-2">{customers.find((c) => c.id === d.customerId)?.name ?? "—"}</td>
+                      {isAdmin && <td className="px-3 py-2">{customers.find((c) => c.id === d.customerId)?.name ?? "—"}</td>}
                       <td className="px-3 py-2 text-muted whitespace-nowrap">{d.userId ? "Attivo" : "Non attivo"}</td>
-                      <td className="px-3 py-2 text-right"><Link href={`/autisti/${d.id}`} className="text-sign hover:underline">{isAdmin ? "Modifica" : "Apri"}</Link></td>
+                      <td className="px-3 py-2 text-right"><Link href={`/autisti/${d.id}`} className="text-sign hover:underline">{editable && ownsDriver(s, d) ? "Modifica" : "Apri"}</Link></td>
                     </tr>
                   );
                 })}
@@ -73,7 +74,7 @@ export default async function DriversPage() {
             </table>
           </div>
         </section>
-        {isAdmin && <NewDriverForm customers={customers.map((c) => ({ id: c.id, name: c.name }))} />}
+        {editable && <NewDriverForm customers={isAdmin ? customers.map((c) => ({ id: c.id, name: c.name })) : []} />}
       </div>
     </div>
   );

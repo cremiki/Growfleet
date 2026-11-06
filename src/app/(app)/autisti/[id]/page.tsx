@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { asc, desc, eq } from "drizzle-orm";
-import { requireSession, scopeFor } from "@/lib/auth/session";
+import { canEdit, ownsDriver, requireSession, scopeFor } from "@/lib/auth/session";
 import { getDb, schema } from "@/lib/db";
 import { fleet } from "@/lib/flespi";
 import { AssignForm, EditDriverForm } from "../DriverForms";
@@ -23,6 +23,7 @@ export default async function DriverPage({ params }: { params: Promise<{ id: str
   ]);
   if (!d) notFound();
   const isAdmin = s.role === "admin";
+  const editable = (await canEdit(s)) && ownsDriver(s, d); // il team, o il cliente proprietario dell'autista
   const vehicles = await fleet.listVehicles(await scopeFor(s));
   // un cliente vede solo i propri autisti o quelli dei suoi veicoli
   if (!isAdmin && d.customerId !== s.customerId && !(veh && vehicles.some((v) => v.id === veh.deviceId))) notFound();
@@ -34,7 +35,7 @@ export default async function DriverPage({ params }: { params: Promise<{ id: str
         <Link href="/autisti" className="text-sign text-sm font-medium hover:underline">‹ Autisti</Link>
         <div className="flex items-center justify-between mt-2">
           <h1 className="text-2xl font-semibold">{d.name}{!d.active && <span className="text-base text-muted font-normal ml-2">disattivato</span>}</h1>
-          {isAdmin && (
+          {editable && (
             <form action={deleteDriver}><input type="hidden" name="id" value={d.id} />
               <button className="text-sm text-offline hover:underline">Elimina autista</button></form>
           )}
@@ -42,7 +43,7 @@ export default async function DriverPage({ params }: { params: Promise<{ id: str
         <p className="text-muted mt-1">Account app: {d.userId ? "attivo" : "non ancora attivo (arriverà con l'app autista)"}.</p>
 
         <div className="mt-5 grid lg:grid-cols-[1fr_360px] gap-6">
-          {isAdmin ? <EditDriverForm driver={d} customers={customers.map((c) => ({ id: c.id, name: c.name }))} /> : (
+          {editable ? <EditDriverForm driver={d} customers={isAdmin ? customers.map((c) => ({ id: c.id, name: c.name })) : []} /> : (
             <dl className="bg-surface border border-line p-5 grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-[15px]">
               <dt className="text-muted">Telefono</dt><dd>{d.phone ?? "—"}</dd>
               <dt className="text-muted">Email</dt><dd>{d.email ?? "—"}</dd>
@@ -51,7 +52,7 @@ export default async function DriverPage({ params }: { params: Promise<{ id: str
             </dl>
           )}
           <div className="space-y-6">
-            {isAdmin ? (
+            {editable ? (
               <AssignForm driverId={d.id} current={veh?.deviceId ?? null} active={d.active}
                 vehicles={vehicles.map((v) => ({ id: v.id, name: v.name, driver: v.driver ?? null }))} />
             ) : (

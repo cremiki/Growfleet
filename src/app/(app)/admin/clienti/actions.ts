@@ -69,6 +69,7 @@ export async function createUser(_: FormState, form: FormData): Promise<FormStat
       passwordHash: await bcrypt.hash(d.password, 10),
       role: d.role,
       customerId: d.role === "customer" ? d.customerId! : null,
+      canEdit: form.get("canEdit") !== "0",
     });
   } catch {
     return { error: "Esiste già un utente con questa email." };
@@ -122,6 +123,7 @@ export async function updateUser(_: FormState, form: FormData): Promise<FormStat
     await db.update(schema.users).set({
       name: d.name, email: d.email, role: d.role,
       customerId: d.role === "customer" ? d.customerId! : null,
+      canEdit: form.get("canEdit") !== "0",
       ...(d.password ? { passwordHash: await bcrypt.hash(d.password, 10) } : {}),
     }).where(eq(schema.users.id, id));
   } catch {

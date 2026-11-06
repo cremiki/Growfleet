@@ -60,6 +60,14 @@ export function UserForm({ customers }: { customers: { id: number; name: string 
           </select>
         </label>
       )}
+      {role === "customer" && (
+        <label className="block text-sm font-medium">Permessi
+          <select name="canEdit" className={input} defaultValue="1">
+            <option value="1">Gestore flotta (modifica veicoli, manutenzioni, autisti)</option>
+            <option value="0">Sola consultazione</option>
+          </select>
+        </label>
+      )}
       <Feedback state={state} />
       <button disabled={pending} className="w-full bg-sign hover:bg-sign-dark text-white font-semibold rounded-md py-2 disabled:opacity-60">
         {pending ? "Creazione…" : "Crea utente"}

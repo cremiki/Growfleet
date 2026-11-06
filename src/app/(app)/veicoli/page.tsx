@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { inArray } from "drizzle-orm";
-import { requireSession, scopeFor, type Scope } from "@/lib/auth/session";
+import { canEdit, requireSession, scopeFor, type Scope } from "@/lib/auth/session";
 import { getDb, schema } from "@/lib/db";
 import { fleet } from "@/lib/flespi";
 import { monthStats, type MonthStats } from "@/lib/vehicleStats";
@@ -98,7 +98,7 @@ export default async function FleetListPage() {
             </tbody>
           </table>
         </div>
-        {s.role === "admin" && <p className="text-sm text-muted mt-3">Apri un veicolo per completarne l&apos;anagrafica: targa, modello e tipo vengono usati in mappa e nei report.</p>}
+        {(await canEdit(s)) && <p className="text-sm text-muted mt-3">Apri un veicolo per completarne l&apos;anagrafica: targa, modello e tipo vengono usati in mappa e nei report.</p>}
       </div>
     </div>
   );

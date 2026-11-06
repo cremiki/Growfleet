@@ -17,12 +17,13 @@ function submitWith(action: (fd: FormData) => void) {
 
 type Props = {
   deviceId: number;
+  isAdmin: boolean;
   profile: VehicleProfile | null;
   deviceName: string;
   customers: { id: number; name: string }[];
   assigned: number[];
   drivers: { id: number; name: string }[];
-  odometer: { current: number | null; raw: number | null; offset: number | null };
+  odometer: { current: number | null; raw: number | null; offset: number | null; by: string | null; at: string | null };
   fuelLevel: number | null;
 };
 
@@ -34,7 +35,7 @@ const SECTIONS = [
   ["accesso", "Accesso clienti"],
 ] as const;
 
-export function VehicleForm({ deviceId, profile: p, deviceName, customers, assigned, drivers, odometer, fuelLevel }: Props) {
+export function VehicleForm({ deviceId, isAdmin, profile: p, deviceName, customers, assigned, drivers, odometer, fuelLevel }: Props) {
   const [state, action, pending] = useActionState<FormState, FormData>(saveVehicle, {});
   const [section, setSection] = useState<(typeof SECTIONS)[number][0]>("generale");
   const show = (s: string) => (section === s ? "" : "hidden");
@@ -42,9 +43,9 @@ export function VehicleForm({ deviceId, profile: p, deviceName, customers, assig
   return (
     <form onSubmit={submitWith(action)} className="mt-5 bg-surface border border-line grid md:grid-cols-[220px_1fr]">
       <input type="hidden" name="deviceId" value={deviceId} />
-      <input type="hidden" name="accessSection" value="1" />
+      {isAdmin && <input type="hidden" name="accessSection" value="1" />}
       <nav className="border-b md:border-b-0 md:border-r border-line py-2">
-        {SECTIONS.map(([k, l]) => (
+        {SECTIONS.filter(([k]) => isAdmin || k !== "accesso").map(([k, l]) => (
           <button key={k} type="button" onClick={() => setSection(k)} aria-current={section === k}
             className={`w-full text-left px-4 py-2 text-sm border-l-4 ${section === k ? "border-l-sign bg-asphalt/50 font-semibold" : "border-l-transparent hover:bg-asphalt/30"}`}>
             {l}
@@ -93,7 +94,7 @@ export function VehicleForm({ deviceId, profile: p, deviceName, customers, assig
           </F>
           <F label="Contachilometri reale (km)"
             hint={odometer.raw == null ? "Il dispositivo non invia il contachilometri."
-              : `Scrivi il valore che leggi sul cruscotto: il dispositivo segna ${Math.round(odometer.raw).toLocaleString("it-IT")} km${odometer.offset ? `, correzione attuale ${odometer.offset > 0 ? "+" : ""}${odometer.offset.toLocaleString("it-IT")} km` : ""}. Lascia vuoto per non correggere.`}>
+              : `Scrivi il valore che leggi sul cruscotto: il dispositivo segna ${Math.round(odometer.raw).toLocaleString("it-IT")} km${odometer.offset ? `, correzione attuale ${odometer.offset > 0 ? "+" : ""}${odometer.offset.toLocaleString("it-IT")} km${odometer.by ? ` (impostata da ${odometer.by}${odometer.at ? ` il ${odometer.at}` : ""})` : ""}` : ""}. Lascia vuoto per non correggere.`}>
             <input name="odoReal" type="number" min={0} step="0.1" disabled={odometer.raw == null}
               defaultValue={odometer.offset != null && odometer.current != null ? Math.round(odometer.current * 10) / 10 : ""} className="input w-full" />
           </F>
@@ -126,7 +127,7 @@ export function VehicleForm({ deviceId, profile: p, deviceName, customers, assig
           <F label="Note"><textarea name="notes" defaultValue={p?.notes ?? ""} rows={4} className="input w-full" maxLength={2000} /></F>
         </fieldset>
 
-        <fieldset className={show("accesso")}>
+        {isAdmin && <fieldset className={show("accesso")}>
           <legend className="text-sm text-muted mb-3">Clienti i cui utenti vedono questo veicolo. Il team lo vede sempre.</legend>
           {customers.length === 0 ? <p className="text-muted text-sm">Non ci sono ancora clienti.</p> : (
             <div className="grid sm:grid-cols-2 gap-2">
@@ -137,7 +138,7 @@ export function VehicleForm({ deviceId, profile: p, deviceName, customers, assig
               ))}
             </div>
           )}
-        </fieldset>
+        </fieldset>}
 
         <div className="mt-6 pt-4 border-t border-line flex items-center gap-4">
           <button disabled={pending} className="bg-sign hover:bg-sign-dark text-white font-semibold rounded px-5 py-2 disabled:opacity-60">

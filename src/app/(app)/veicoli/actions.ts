@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb, schema } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth/session";
+import { EditError, requireEditor, type Scope } from "@/lib/auth/session";
 import { fleet } from "@/lib/flespi";
 import { addMonths, todayIso } from "@/lib/reminders";
 import { setAssignment } from "@/lib/drivers";
@@ -22,11 +22,22 @@ const num = (s: FormDataEntryValue | null) => {
   return Number.isFinite(n) ? n : NaN;
 };
 
-async function ensureDevice(id: number) {
-  // il veicolo deve esistere fra i dispositivi visibili al token flespi
-  const v = await fleet.getVehicle({ kind: "all" }, id);
+async function ensureDevice(scope: Scope, id: number) {
+  // il veicolo deve esistere ed essere nel perimetro dell'utente
+  const v = await fleet.getVehicle(scope, id);
   if (!v) throw new Error("Veicolo non trovato.");
   return v;
+}
+
+/** Permesso di modifica sul veicolo: restituisce sessione e perimetro, oppure il messaggio d'errore */
+async function editor(id: number) {
+  try {
+    const r = await requireEditor(id);
+    return { ...r, detail: await ensureDevice(r.scope, id) };
+  } catch (e) {
+    if (e instanceof EditError || (e as Error).message === "Veicolo non trovato.") return { error: (e as Error).message };
+    throw e;
+  }
 }
 
 const profileSchema = z.object({
@@ -51,10 +62,10 @@ const profileSchema = z.object({
 });
 
 export async function saveVehicle(_: FormState, form: FormData): Promise<FormState> {
-  await requireAdmin();
   const id = Number(form.get("deviceId"));
-  let detail;
-  try { detail = await ensureDevice(id); } catch (e) { return { error: (e as Error).message }; }
+  const ed = await editor(id);
+  if ("error" in ed) return { error: ed.error };
+  const { s, detail } = ed;
 
   const raw = {
     plate: opt(form.get("plate"))?.toUpperCase() ?? null,
@@ -102,13 +113,21 @@ export async function saveVehicle(_: FormState, form: FormData): Promise<FormSta
   const driverId = num(form.get("driverId"));
   const newDriver = driverId != null && !Number.isNaN(driverId) ? driverId : null;
   const db = await getDb();
-  const values = { ...parsed.data, driverId: newDriver, odoOffsetKm, deviceId: id, updatedAt: new Date() };
+  if (newDriver != null && s.role !== "admin") {
+    const [d] = await db.select({ customerId: schema.drivers.customerId }).from(schema.drivers).where(eq(schema.drivers.id, newDriver));
+    if (!d || d.customerId !== s.customerId) return { error: "Autista non trovato." };
+  }
+  const odoChanged = (odoOffsetKm ?? null) !== (st.odoOffset ?? null);
+  const values = {
+    ...parsed.data, driverId: newDriver, odoOffsetKm, deviceId: id, updatedAt: new Date(),
+    ...(odoChanged ? { odoOffsetBy: odoOffsetKm != null ? s.name : null, odoOffsetAt: odoOffsetKm != null ? new Date() : null } : {}),
+  };
   const { driverId: _ignored, ...rest } = values;
   await db.insert(schema.vehicles).values(rest).onConflictDoUpdate({ target: schema.vehicles.deviceId, set: rest });
   await setAssignment(id, newDriver);
 
   // Accesso: quali clienti vedono il veicolo
-  if (form.get("accessSection") === "1") {
+  if (form.get("accessSection") === "1" && s.role === "admin") {
     const customerIds = form.getAll("customer").map(Number).filter((n) => Number.isInteger(n) && n > 0);
     await db.transaction(async (tx) => {
       await tx.delete(schema.customerDevices).where(eq(schema.customerDevices.deviceId, id));
@@ -140,10 +159,10 @@ const reminderSchema = z.object({
  * km di partenza + intervallo. Se la scadenza è scritta a mano, vale quella.
  */
 export async function addReminder(_: FormState, form: FormData): Promise<FormState> {
-  await requireAdmin();
   const id = Number(form.get("deviceId"));
-  let detail;
-  try { detail = await ensureDevice(id); } catch (e) { return { error: (e as Error).message }; }
+  const ed = await editor(id);
+  if ("error" in ed) return { error: ed.error };
+  const { detail } = ed;
   const raw = {
     kind: form.get("kind"),
     title: String(form.get("title") ?? ""),
@@ -194,17 +213,17 @@ export async function addReminder(_: FormState, form: FormData): Promise<FormSta
 
 /** Segna come fatto; se il promemoria si ripete ne crea subito il successivo dai valori attuali */
 export async function completeReminder(form: FormData) {
-  await requireAdmin();
   const id = Number(form.get("id"));
   const deviceId = Number(form.get("deviceId"));
+  const ed = await editor(deviceId);
+  if ("error" in ed) return;
   const db = await getDb();
   const [r] = await db.select().from(schema.reminders).where(and(eq(schema.reminders.id, id), eq(schema.reminders.deviceId, deviceId)));
   if (!r || r.doneAt) return;
   await db.update(schema.reminders).set({ doneAt: new Date() }).where(eq(schema.reminders.id, id));
   if (r.intervalKm != null || r.intervalHours != null || r.intervalMonths != null) {
-    const v = await fleet.getVehicle({ kind: "all" }, deviceId).catch(() => null);
-    const odo = v?.state.odometerKm ?? null;
-    const hrs = v?.state.engineHours ?? null;
+    const odo = ed.detail.state.odometerKm ?? null;
+    const hrs = ed.detail.state.engineHours ?? null;
     const today = todayIso();
     await db.insert(schema.reminders).values({
       deviceId, kind: r.kind, title: r.title, notes: r.notes,
@@ -222,9 +241,10 @@ export async function completeReminder(form: FormData) {
 }
 
 export async function deleteReminder(form: FormData) {
-  await requireAdmin();
   const id = Number(form.get("id"));
   const deviceId = Number(form.get("deviceId"));
+  const ed = await editor(deviceId);
+  if ("error" in ed) return;
   const db = await getDb();
   await db.delete(schema.reminders).where(and(eq(schema.reminders.id, id), eq(schema.reminders.deviceId, deviceId)));
   revalidatePath(`/veicoli/${deviceId}`);

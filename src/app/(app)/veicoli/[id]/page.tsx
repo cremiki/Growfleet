@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { asc, eq } from "drizzle-orm";
-import { requireSession, scopeFor, type Scope } from "@/lib/auth/session";
+import { canEdit, requireSession, scopeFor, type Scope } from "@/lib/auth/session";
 import { getDb, schema } from "@/lib/db";
 import { fleet } from "@/lib/flespi";
 import { monthStats } from "@/lib/vehicleStats";
@@ -35,7 +35,7 @@ export default async function VehicleProfilePage({ params }: { params: Promise<{
   };
   const maint = count("manutenzione");
   const docs = count("documento");
-  const isAdmin = s.role === "admin";
+  const editable = await canEdit(s); // team, o utente del cliente non in sola consultazione
 
   return (
     <div className="h-full overflow-y-auto">
@@ -44,7 +44,7 @@ export default async function VehicleProfilePage({ params }: { params: Promise<{
           <Link href="/veicoli" className="text-sign text-sm font-medium hover:underline">‹ Torna alla flotta</Link>
           <div className="flex gap-2">
             <Link href={`/flotta?v=${id}`} className="border border-line bg-white rounded px-3 py-1.5 text-sm hover:bg-asphalt">Vedi sulla mappa</Link>
-            {isAdmin && <Link href={`/veicoli/${id}/modifica`} className="bg-sign hover:bg-sign-dark text-white rounded px-3 py-1.5 text-sm font-semibold">Modifica veicolo</Link>}
+            {editable && <Link href={`/veicoli/${id}/modifica`} className="bg-sign hover:bg-sign-dark text-white rounded px-3 py-1.5 text-sm font-semibold">Modifica veicolo</Link>}
           </div>
         </div>
 
@@ -70,7 +70,7 @@ export default async function VehicleProfilePage({ params }: { params: Promise<{
               {v.fuelLevel != null && v.fuelVolume == null && <span className="text-xs text-muted ml-1.5">imposta la capienza del serbatoio per vedere i litri</span>}
             </dd>
             <dt className="text-muted">Contachilometri</dt>
-            <dd>{v.odometerKm != null ? `${fmt1(v.odometerKm)} km` : "—"}{v.odoOffset ? <span className="text-xs text-muted ml-1.5">corretto di {v.odoOffset > 0 ? "+" : ""}{fmt1(v.odoOffset)} km</span> : null}</dd>
+            <dd>{v.odometerKm != null ? `${fmt1(v.odometerKm)} km` : "—"}{v.odoOffset ? <span className="text-xs text-muted ml-1.5">corretto di {v.odoOffset > 0 ? "+" : ""}{fmt1(v.odoOffset)} km{profile?.odoOffsetBy ? ` da ${profile.odoOffsetBy}` : ""}{profile?.odoOffsetAt ? ` il ${profile.odoOffsetAt.toLocaleDateString("it-IT", { timeZone: "Europe/Rome" })}` : ""}</span> : null}</dd>
             <dt className="text-muted">Ore motore</dt><dd>{v.engineHours != null ? `${fmt1(v.engineHours)} h` : "—"}</dd>
           </dl>
         </section>
@@ -85,7 +85,7 @@ export default async function VehicleProfilePage({ params }: { params: Promise<{
 
         <ProfileTabs
           deviceId={id}
-          isAdmin={isAdmin}
+          canEdit={editable}
           profile={profile ?? null}
           reminders={states.map((r) => ({
             id: r.id, kind: r.kind, title: r.title, dueDate: r.dueDate, dueKm: r.dueKm, dueHours: r.dueHours, notes: r.notes,

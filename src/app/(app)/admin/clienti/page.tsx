@@ -85,7 +85,7 @@ export default async function CustomersPage() {
                   <tr key={u.id} className="border-b border-line last:border-0">
                     <td className="p-3 font-semibold">{u.name}</td>
                     <td className="p-3 whitespace-nowrap">{u.email}</td>
-                    <td className="p-3">{u.role === "admin" ? "Team (tutti i clienti)" : customers.find((c) => c.id === u.customerId)?.name ?? "—"}</td>
+                    <td className="p-3">{u.role === "admin" ? "Team (tutti i clienti)" : <>{customers.find((c) => c.id === u.customerId)?.name ?? "—"}<span className="block text-xs text-muted">{u.canEdit ? "Gestore flotta" : "Sola consultazione"}</span></>}</td>
                     <td className="p-3 whitespace-nowrap text-sm">{u.lastLoginAt ? u.lastLoginAt.toLocaleString("it-IT", { timeZone: "Europe/Rome", dateStyle: "short", timeStyle: "short" }) : <span className="text-muted">mai</span>}</td>
                     <td className="p-3 text-sm">{u.blocked ? <span className="text-offline font-semibold">Bloccato</span> : "Attivo"}</td>
                     <td className="p-3 text-right whitespace-nowrap text-sm">

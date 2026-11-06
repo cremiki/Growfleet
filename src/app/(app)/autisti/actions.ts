@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb, schema } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth/session";
+import { EditError, ownsDriver, requireEditor, scopeFor } from "@/lib/auth/session";
+import type { SessionPayload } from "@/lib/auth/token";
 import { fleet } from "@/lib/flespi";
 import { setAssignment } from "@/lib/drivers";
 
@@ -45,10 +46,28 @@ function read(form: FormData) {
   });
 }
 
+/** Permesso di modifica; restituisce la sessione o il messaggio d'errore */
+async function editor(): Promise<SessionPayload | { error: string }> {
+  try { return (await requireEditor()).s; } catch (e) {
+    if (e instanceof EditError) return { error: e.message };
+    throw e;
+  }
+}
+
+/** Autista modificabile dall'utente: il team tutti, un cliente solo i propri */
+async function myDriver(s: SessionPayload, id: number) {
+  const db = await getDb();
+  const [d] = await db.select().from(schema.drivers).where(eq(schema.drivers.id, id));
+  return d && ownsDriver(s, d) ? d : null;
+}
+
 export async function createDriver(_: FormState, form: FormData): Promise<FormState> {
-  await requireAdmin();
+  const s = await editor();
+  if ("error" in s) return s;
   const parsed = read(form);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+  // l'autista creato da un cliente appartiene sempre a quel cliente
+  if (s.role !== "admin") parsed.data.customerId = s.customerId;
   const db = await getDb();
   const [d] = await db.insert(schema.drivers).values(parsed.data).returning({ id: schema.drivers.id });
   revalidatePath("/autisti");
@@ -56,10 +75,13 @@ export async function createDriver(_: FormState, form: FormData): Promise<FormSt
 }
 
 export async function updateDriver(_: FormState, form: FormData): Promise<FormState> {
-  await requireAdmin();
+  const s = await editor();
+  if ("error" in s) return s;
   const id = Number(form.get("id"));
+  if (!(await myDriver(s, id))) return { error: "Autista non trovato." };
   const parsed = read(form);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (s.role !== "admin") parsed.data.customerId = s.customerId;
   const db = await getDb();
   await db.update(schema.drivers).set(parsed.data).where(eq(schema.drivers.id, id));
   // un autista disattivato non resta abbinato a un veicolo
@@ -73,16 +95,17 @@ export async function updateDriver(_: FormState, form: FormData): Promise<FormSt
 }
 
 export async function assignVehicle(_: FormState, form: FormData): Promise<FormState> {
-  await requireAdmin();
+  const s = await editor();
+  if ("error" in s) return s;
   const driverId = Number(form.get("driverId"));
   const raw = opt(form.get("deviceId"));
   const db = await getDb();
-  const [d] = await db.select().from(schema.drivers).where(eq(schema.drivers.id, driverId));
+  const d = await myDriver(s, driverId);
   if (!d) return { error: "Autista non trovato." };
   if (!d.active && raw) return { error: "L'autista è disattivato: riattivalo per abbinarlo a un veicolo." };
   if (raw) {
     const deviceId = Number(raw);
-    const v = await fleet.getVehicle({ kind: "all" }, deviceId);
+    const v = await fleet.getVehicle(await scopeFor(s), deviceId); // un cliente abbina solo ai propri veicoli
     if (!v) return { error: "Veicolo non trovato." };
     await setAssignment(deviceId, driverId);
     revalidatePath(`/autisti/${driverId}`);
@@ -97,8 +120,10 @@ export async function assignVehicle(_: FormState, form: FormData): Promise<FormS
 }
 
 export async function deleteDriver(form: FormData) {
-  await requireAdmin();
+  const s = await editor();
+  if ("error" in s) return;
   const id = Number(form.get("id"));
+  if (!(await myDriver(s, id))) return;
   const db = await getDb();
   const [cur] = await db.select({ deviceId: schema.vehicles.deviceId }).from(schema.vehicles).where(eq(schema.vehicles.driverId, id));
   if (cur) await setAssignment(cur.deviceId, null);

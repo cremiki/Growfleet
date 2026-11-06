@@ -74,3 +74,30 @@ export async function scopeFor(s: SessionPayload, filterCustomerId?: number | nu
 }
 
 export { isMock };
+
+/**
+ * Chi può modificare i dati della flotta (profilo veicolo, manutenzioni, autisti):
+ * il team sempre; gli utenti di un cliente se non sono in sola consultazione, e solo sui propri veicoli.
+ */
+export async function canEdit(s: SessionPayload): Promise<boolean> {
+  if (s.role === "admin") return true;
+  const db = await getDb();
+  const [u] = await db.select({ canEdit: schema.users.canEdit, blocked: schema.users.blocked }).from(schema.users).where(eq(schema.users.id, s.uid));
+  return !!u && !u.blocked && u.canEdit;
+}
+
+export class EditError extends Error {}
+
+/** Per le azioni di modifica: verifica il permesso e, se indicato, che il veicolo sia del cliente */
+export async function requireEditor(deviceId?: number): Promise<{ s: SessionPayload; scope: Scope }> {
+  const s = await requireSession();
+  if (!(await canEdit(s))) throw new EditError("Il tuo utente è in sola consultazione: chiedi all'amministratore di abilitare le modifiche.");
+  const scope = await scopeFor(s);
+  if (deviceId != null && scope.kind === "customer" && !scope.deviceIds.includes(deviceId)) throw new EditError("Veicolo non trovato.");
+  return { s, scope };
+}
+
+/** Un utente cliente gestisce solo gli autisti del proprio cliente */
+export function ownsDriver(s: SessionPayload, d: { customerId: number | null }): boolean {
+  return s.role === "admin" || (d.customerId != null && d.customerId === s.customerId);
+}

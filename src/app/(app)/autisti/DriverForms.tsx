@@ -37,12 +37,14 @@ function Fields({ d, customers }: { d?: Driver | null; customers: { id: number; 
         <label className="block text-sm font-medium">Categorie<input name="licenseCategories" defaultValue={d?.licenseCategories ?? ""} className="input w-full mt-1 uppercase" placeholder="B, C, CE" /></label>
         <label className="block text-sm font-medium">Scadenza<input name="licenseExpiry" type="date" defaultValue={d?.licenseExpiry ?? ""} className="input w-full mt-1" /></label>
       </div>
-      <label className="block text-sm font-medium">Cliente
-        <select name="customerId" defaultValue={d?.customerId ?? ""} className="input w-full mt-1">
-          <option value="">Nessuno (autista del team)</option>
-          {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-      </label>
+      {customers.length > 0 && (
+        <label className="block text-sm font-medium">Cliente
+          <select name="customerId" defaultValue={d?.customerId ?? ""} className="input w-full mt-1">
+            <option value="">Nessuno (autista del team)</option>
+            {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </label>
+      )}
       <label className="block text-sm font-medium">Note<textarea name="notes" defaultValue={d?.notes ?? ""} rows={2} className="input w-full mt-1" /></label>
     </>
   );
