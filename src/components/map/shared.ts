@@ -1,6 +1,7 @@
 import type { TrackPoint, VehicleState } from "@/lib/types";
 import type { Stop } from "@/lib/trips";
-import { STATUS_COLOR } from "@/lib/format";
+import { ago, STATUS_COLOR } from "@/lib/format";
+import { STATUS_LABEL } from "@/lib/types";
 
 export type MapProvider = "osm" | "google";
 
@@ -13,7 +14,10 @@ export type RouteOverlay = {
 
 export type Focus = { lat: number; lon: number; zoom?: number; key: string };
 
+export type Pin = { lat: number; lon: number; label: string };
+
 export type LiveMapProps = {
+  pin?: Pin | null; // indirizzo cercato
   vehicles: VehicleState[];
   selectedId: number | null;
   onSelect: (id: number) => void;
@@ -41,17 +45,46 @@ export const glyphFor = (type: string | null | undefined) => (type && TYPE_GLYPH
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
-/** Icona del veicolo + etichetta con il nome (targa), colorate per stato */
-export function vehicleMarkerHtml(v: Pick<VehicleState, "status" | "course" | "name" | "label" | "vtype">, selected: boolean): string {
+type MarkerVehicle = Pick<VehicleState, "status" | "course" | "name" | "label" | "vtype"> &
+  Partial<Pick<VehicleState, "speed" | "driver" | "lastSeen" | "fuelLevel" | "fuelVolume" | "makeModel" | "ignition">>;
+
+/** Scheda che compare passando il mouse sul veicolo */
+function tipHtml(v: MarkerVehicle): string {
+  const rows: [string, string][] = [
+    ["Stato", `<b style="color:${STATUS_COLOR[v.status]}">${STATUS_LABEL[v.status]}</b>`],
+    ["Velocità", v.speed != null ? `${Math.round(v.speed)} km/h` : "—"],
+    ["Autista", v.driver ? esc(v.driver) : "non assegnato"],
+  ];
+  if (v.fuelLevel != null || v.fuelVolume != null) {
+    rows.push(["Carburante", [v.fuelLevel != null ? `${Math.round(v.fuelLevel)}%` : "", v.fuelVolume != null ? `${Math.round(v.fuelVolume)} l` : ""].filter(Boolean).join(", ")]);
+  }
+  rows.push(["Ultimo dato", ago(v.lastSeen ?? null)]);
+  return `<div class="vm-tip"><div style="font-weight:700;font-size:13.5px">${esc(v.name)}${v.makeModel ? ` <span class="k" style="font-weight:400">${esc(v.makeModel)}</span>` : ""}</div>${rows
+    .map(([k, val]) => `<div class="row"><span class="k">${k}</span><span>${val}</span></div>`).join("")}</div>`;
+}
+
+/** Icona del veicolo + etichetta con il nome (targa), colorate per stato, con scheda al passaggio del mouse */
+export function vehicleMarkerHtml(v: MarkerVehicle, selected: boolean): string {
   const c = STATUS_COLOR[v.status];
   const arrow = v.status === "moving"
     ? `<g transform="rotate(${v.course ?? 0} 12 12)"><path d="M12 4 L17.5 17 L12 14 L6.5 17 Z" fill="#fff"/></g>`
     : glyphFor(v.vtype);
   const ring = selected ? "box-shadow:0 0 0 3px #fff,0 0 0 5px #0b4f9c;" : "box-shadow:0 1px 3px rgba(24,33,43,.35);";
-  return `<div style="display:flex;align-items:center;gap:0;transform:translate(-12px,-12px);white-space:nowrap;cursor:pointer">
-    <span style="display:inline-flex;width:24px;height:24px;border-radius:5px;background:${c};${ring}align-items:center;justify-content:center">
-      <svg width="24" height="24" viewBox="0 0 24 24">${arrow}</svg></span>
-    <span style="margin-left:3px;padding:1px 6px;border-radius:3px;background:${c};color:#fff;font:600 12px/18px 'Barlow Semi Condensed',sans-serif;box-shadow:0 1px 2px rgba(24,33,43,.3)">${esc(v.label || v.name)}</span>
+  return `<div class="vm" style="transform:translate(-12px,-12px);cursor:pointer">
+    <div style="display:flex;align-items:center;white-space:nowrap">
+      <span style="display:inline-flex;width:24px;height:24px;border-radius:5px;background:${c};${ring}align-items:center;justify-content:center">
+        <svg width="24" height="24" viewBox="0 0 24 24">${arrow}</svg></span>
+      <span style="margin-left:3px;padding:1px 6px;border-radius:3px;background:${c};color:#fff;font:600 12px/18px 'Barlow Semi Condensed',sans-serif;box-shadow:0 1px 2px rgba(24,33,43,.3)">${esc(v.label || v.name)}</span>
+    </div>
+    ${tipHtml(v)}
+  </div>`;
+}
+
+/** Segnaposto dell'indirizzo cercato */
+export function pinHtml(label: string): string {
+  return `<div class="vm" style="transform:translate(-11px,-30px)">
+    <svg width="22" height="30" viewBox="0 0 22 30"><path d="M11 0a11 11 0 0 1 11 11c0 8-11 19-11 19S0 19 0 11A11 11 0 0 1 11 0Z" fill="#0b4f9c"/><circle cx="11" cy="11" r="4.2" fill="#fff"/></svg>
+    <div class="vm-tip" style="top:32px">${esc(label)}</div>
   </div>`;
 }
 

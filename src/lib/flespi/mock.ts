@@ -86,7 +86,8 @@ function state(d: Def, now: number): VehicleState {
     satellites: d.profile === "offline" ? 4 : 11,
     positionTs: t - 8,
     ignition: s.ignition, movement: s.driving,
-    fuelLevel: s.fuel, fuelVolume: Math.round(s.fuel * (d.cid === 1002 ? 6 : 0.9)),
+    // i furgoni (cid 1001) inviano solo la %: i litri li calcola l'app dalla capienza del serbatoio
+    fuelLevel: s.fuel, fuelVolume: d.cid === 1002 ? Math.round(s.fuel * 6) : null,
     odometerKm: s.odometer, engineHours: Math.round(d.odoBase / 42 + (d.profile === "drive" ? (s.odometer - d.odoBase) / 50 : 0)),
     fuelUsed: Math.round(s.odometer * 0.075 * 10) / 10, gpsMileage: Math.round(s.odometer * 0.31 * 10) / 10,
     batteryV: 4.1, externalV: s.ignition ? 27.9 : 24.6, gsmSignal: 78,

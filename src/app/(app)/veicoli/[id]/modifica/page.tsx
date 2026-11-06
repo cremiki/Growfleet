@@ -14,11 +14,13 @@ export default async function EditVehiclePage({ params }: { params: Promise<{ id
   const detail = Number.isInteger(id) ? await fleet.getVehicle({ kind: "all" }, id) : null;
   if (!detail) notFound();
   const db = await getDb();
-  const [[profile], customers, links] = await Promise.all([
+  const [[profile], customers, links, driverList] = await Promise.all([
     db.select().from(schema.vehicles).where(eq(schema.vehicles.deviceId, id)),
     db.select().from(schema.customers).orderBy(asc(schema.customers.name)),
     db.select().from(schema.customerDevices).where(eq(schema.customerDevices.deviceId, id)),
+    db.select({ id: schema.drivers.id, name: schema.drivers.name, active: schema.drivers.active }).from(schema.drivers).orderBy(asc(schema.drivers.name)),
   ]);
+  const st = detail.state;
   return (
     <div className="h-full overflow-y-auto">
       <div className="px-6 py-5 max-w-4xl">
@@ -33,6 +35,9 @@ export default async function EditVehiclePage({ params }: { params: Promise<{ id
           deviceName={detail.state.deviceName ?? detail.state.name}
           customers={customers.map((c) => ({ id: c.id, name: c.name }))}
           assigned={links.map((l) => l.customerId)}
+          drivers={driverList.filter((d) => d.active || d.id === profile?.driverId).map((d) => ({ id: d.id, name: d.name }))}
+          odometer={{ current: st.odometerKm, raw: st.odometerKm != null ? st.odometerKm - (st.odoOffset ?? 0) : null, offset: st.odoOffset ?? null }}
+          fuelLevel={st.fuelLevel}
         />
       </div>
     </div>

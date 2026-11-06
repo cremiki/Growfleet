@@ -58,13 +58,19 @@ export default async function VehicleProfilePage({ params }: { params: Promise<{
             </div>
           </div>
           <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-[15px] min-w-[320px]">
-            <dt className="text-muted">Autista</dt><dd>{v.driver ?? "—"}</dd>
+            <dt className="text-muted">Autista</dt>
+            <dd>{v.driverId ? <Link href={`/autisti/${v.driverId}`} className="text-sign hover:underline">{v.driver}</Link> : v.driver ?? "—"}</dd>
             <dt className="text-muted">Posizione</dt><dd>{v.lat != null ? <AddressText lat={v.lat} lon={v.lon!} /> : "—"}</dd>
             <dt className="text-muted">Stato attuale</dt>
             <dd><span style={{ color: STATUS_COLOR[v.status] }} className="font-medium">{STATUS_LABEL[v.status]}</span> <span className="text-muted">(ultimi dati {ago(v.lastSeen)})</span></dd>
             <dt className="text-muted">Carburante</dt>
-            <dd>{v.fuelLevel != null ? `${fmtInt(v.fuelLevel)}%` : ""}{v.fuelVolume != null ? ` ${fmt1(v.fuelVolume)} l` : ""}{v.fuelLevel == null && v.fuelVolume == null ? "—" : ""}</dd>
-            <dt className="text-muted">Contachilometri</dt><dd>{v.odometerKm != null ? `${fmt1(v.odometerKm)} km` : "—"}</dd>
+            <dd>
+              {v.fuelLevel != null ? `${fmtInt(v.fuelLevel)}%` : ""}{v.fuelVolume != null ? ` ${fmt1(v.fuelVolume)} l` : ""}{v.fuelLevel == null && v.fuelVolume == null ? "—" : ""}
+              {v.fuelFromTank && <span className="text-xs text-muted ml-1.5">calcolati dalla capienza del serbatoio</span>}
+              {v.fuelLevel != null && v.fuelVolume == null && <span className="text-xs text-muted ml-1.5">imposta la capienza del serbatoio per vedere i litri</span>}
+            </dd>
+            <dt className="text-muted">Contachilometri</dt>
+            <dd>{v.odometerKm != null ? `${fmt1(v.odometerKm)} km` : "—"}{v.odoOffset ? <span className="text-xs text-muted ml-1.5">corretto di {v.odoOffset > 0 ? "+" : ""}{fmt1(v.odoOffset)} km</span> : null}</dd>
             <dt className="text-muted">Ore motore</dt><dd>{v.engineHours != null ? `${fmt1(v.engineHours)} h` : "—"}</dd>
           </dl>
         </section>
@@ -81,7 +87,13 @@ export default async function VehicleProfilePage({ params }: { params: Promise<{
           deviceId={id}
           isAdmin={isAdmin}
           profile={profile ?? null}
-          reminders={states.map((r) => ({ id: r.id, kind: r.kind, title: r.title, dueDate: r.dueDate, dueKm: r.dueKm, dueHours: r.dueHours, notes: r.notes, done: !!r.doneAt, status: r.status, daysLeft: r.daysLeft, kmLeft: r.kmLeft, hoursLeft: r.hoursLeft }))}
+          reminders={states.map((r) => ({
+            id: r.id, kind: r.kind, title: r.title, dueDate: r.dueDate, dueKm: r.dueKm, dueHours: r.dueHours, notes: r.notes,
+            startKm: r.startKm, intervalKm: r.intervalKm, startHours: r.startHours, intervalHours: r.intervalHours,
+            startDate: r.startDate, intervalMonths: r.intervalMonths,
+            done: !!r.doneAt, status: r.status, daysLeft: r.daysLeft, kmLeft: r.kmLeft, hoursLeft: r.hoursLeft,
+            progress: r.progress, overall: r.overall,
+          }))}
           odometer={v.odometerKm}
           hours={v.engineHours}
         />

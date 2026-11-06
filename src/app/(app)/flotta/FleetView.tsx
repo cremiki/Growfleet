@@ -11,6 +11,7 @@ import { VehicleCard } from "./VehicleCard";
 import { VehiclePanel } from "./VehiclePanel";
 import { Dropdown } from "./Dropdown";
 import { AddressSearch } from "./AddressSearch";
+import { NearestBox } from "./NearestBox";
 
 type Customer = { id: number; name: string; deviceIds: number[] };
 type Props = { isAdmin: boolean; customers: Customer[] };
@@ -30,6 +31,7 @@ export function FleetView({ isAdmin, customers }: Props) {
   const [route, setRoute] = useState<RouteOverlay | null>(null);
   const [focus, setFocus] = useState<Focus | null>(null);
   const [fitAllKey, setFitAllKey] = useState(0);
+  const [near, setNear] = useState<{ lat: number; lon: number; label: string } | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   // Selezione e scheda sincronizzate con l'URL (?v=ID&tab=itinerari), così il link si può condividere
@@ -136,9 +138,14 @@ export function FleetView({ isAdmin, customers }: Props) {
 
         <section className="relative h-[45vh] md:h-auto min-h-0">
           <LiveMap provider={provider} vehicles={selected ? [selected] : filtered} selectedId={selectedId}
-            onSelect={(id) => select(id)} route={route} focus={focus} fitAllKey={fitAllKey} />
-          <div className="absolute top-2.5 left-14 z-[1000]">
-            <AddressSearch onPick={(r) => setFocus({ lat: r.lat, lon: r.lon, zoom: 16, key: `${r.lat},${r.lon},${Date.now()}` })} />
+            onSelect={(id) => select(id)} route={route} focus={focus} fitAllKey={fitAllKey} pin={near} />
+          <div className="absolute top-2.5 left-14 z-[1000] space-y-2">
+            <AddressSearch placeholder="Cerca un indirizzo per trovare i veicoli vicini"
+              onPick={(r) => { setNear(r); setFocus({ lat: r.lat, lon: r.lon, zoom: 12, key: `${r.lat},${r.lon},${Date.now()}` }); }} />
+            {near && (
+              <NearestBox place={near} vehicles={vehicles ?? []} onClose={() => setNear(null)}
+                onSelect={(id) => select(id)} />
+            )}
           </div>
           <div className="absolute top-2.5 right-2.5 z-[1000]">
             <MapSwitch value={provider} onChange={setProvider} />

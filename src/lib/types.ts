@@ -37,6 +37,9 @@ export type VehicleState = {
   label?: string; // testo dell'etichetta sulla mappa
   unavailable?: boolean;
   speedLimit?: number | null;
+  driverId?: number | null;
+  fuelFromTank?: boolean; // litri o % calcolati con la capienza del serbatoio
+  odoOffset?: number | null; // correzione applicata al contachilometri
 };
 
 export type TelemetryEntry = { name: string; value: unknown; ts: number };

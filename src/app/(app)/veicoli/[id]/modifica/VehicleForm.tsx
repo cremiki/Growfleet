@@ -1,9 +1,19 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import type { VehicleProfile } from "@/lib/db/schema";
 import { saveVehicle, type FormState } from "../../actions";
 import { FUEL_TYPES, TYPE_LABEL } from "../typeLabels";
+
+/** Invio senza il reset automatico del modulo di React: dopo il salvataggio i campi mostrano ciò che si è salvato */
+function submitWith(action: (fd: FormData) => void) {
+  return (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    startTransition(() => action(fd));
+  };
+}
+
 
 type Props = {
   deviceId: number;
@@ -11,6 +21,9 @@ type Props = {
   deviceName: string;
   customers: { id: number; name: string }[];
   assigned: number[];
+  drivers: { id: number; name: string }[];
+  odometer: { current: number | null; raw: number | null; offset: number | null };
+  fuelLevel: number | null;
 };
 
 const SECTIONS = [
@@ -21,13 +34,13 @@ const SECTIONS = [
   ["accesso", "Accesso clienti"],
 ] as const;
 
-export function VehicleForm({ deviceId, profile: p, deviceName, customers, assigned }: Props) {
+export function VehicleForm({ deviceId, profile: p, deviceName, customers, assigned, drivers, odometer, fuelLevel }: Props) {
   const [state, action, pending] = useActionState<FormState, FormData>(saveVehicle, {});
   const [section, setSection] = useState<(typeof SECTIONS)[number][0]>("generale");
   const show = (s: string) => (section === s ? "" : "hidden");
 
   return (
-    <form action={action} className="mt-5 bg-surface border border-line grid md:grid-cols-[220px_1fr]">
+    <form onSubmit={submitWith(action)} className="mt-5 bg-surface border border-line grid md:grid-cols-[220px_1fr]">
       <input type="hidden" name="deviceId" value={deviceId} />
       <input type="hidden" name="accessSection" value="1" />
       <nav className="border-b md:border-b-0 md:border-r border-line py-2">
@@ -54,7 +67,13 @@ export function VehicleForm({ deviceId, profile: p, deviceName, customers, assig
           <F label="Modello"><input name="model" defaultValue={p?.model ?? ""} className="input w-full" /></F>
           <F label="Anno di immatricolazione"><input name="year" type="number" min={1950} max={2100} defaultValue={p?.year ?? ""} className="input w-full" /></F>
           <F label="Numero di telaio (VIN)"><input name="vin" defaultValue={p?.vin ?? ""} className="input w-full uppercase" maxLength={30} /></F>
-          <F label="Autista"><input name="driver" defaultValue={p?.driver ?? ""} className="input w-full" /></F>
+          <F label="Autista abbinato" hint={drivers.length ? "Gli autisti si gestiscono nella sezione Autisti." : "Nessun autista: creali nella sezione Autisti."}>
+            <select name="driverId" defaultValue={p?.driverId ?? ""} className="input w-full">
+              <option value="">Nessuno</option>
+              {drivers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+            <input type="hidden" name="driver" value={p?.driver ?? ""} />
+          </F>
           <F label="Testo dell'etichetta sulla mappa" hint={`Se vuoto si usa la targa, o il nome del dispositivo (${deviceName}).`}>
             <input name="iconText" defaultValue={p?.iconText ?? ""} className="input w-full" maxLength={30} />
           </F>
@@ -68,7 +87,16 @@ export function VehicleForm({ deviceId, profile: p, deviceName, customers, assig
               {FUEL_TYPES.map((f) => <option key={f} value={f}>{f}</option>)}
             </select>
           </F>
-          <F label="Capacità del serbatoio (litri)"><input name="tankL" type="number" min={0} step="0.1" defaultValue={p?.tankL ?? ""} className="input w-full" /></F>
+          <F label="Capacità del serbatoio (litri)"
+            hint={fuelLevel != null ? `Il dispositivo invia il livello in % (ora ${Math.round(fuelLevel)}%): con la capienza l'app lo converte in litri.` : "Serve a convertire il livello da % a litri e viceversa."}>
+            <input name="tankL" type="number" min={0} step="0.1" defaultValue={p?.tankL ?? ""} className="input w-full" />
+          </F>
+          <F label="Contachilometri reale (km)"
+            hint={odometer.raw == null ? "Il dispositivo non invia il contachilometri."
+              : `Scrivi il valore che leggi sul cruscotto: il dispositivo segna ${Math.round(odometer.raw).toLocaleString("it-IT")} km${odometer.offset ? `, correzione attuale ${odometer.offset > 0 ? "+" : ""}${odometer.offset.toLocaleString("it-IT")} km` : ""}. Lascia vuoto per non correggere.`}>
+            <input name="odoReal" type="number" min={0} step="0.1" disabled={odometer.raw == null}
+              defaultValue={odometer.offset != null && odometer.current != null ? Math.round(odometer.current * 10) / 10 : ""} className="input w-full" />
+          </F>
           <F label="Consumo medio di riferimento (l/100km)" hint="Serve a confrontare i consumi reali con quelli attesi.">
             <input name="consumptionL100" type="number" min={0} step="0.1" defaultValue={p?.consumptionL100 ?? ""} className="input w-full" />
           </F>

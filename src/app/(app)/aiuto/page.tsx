@@ -73,10 +73,10 @@ export default async function HelpPage() {
 }
 
 const EXPLAIN: Record<VehicleStatus, string> = {
-  moving: "si sta muovendo",
-  idle: "fermo ma con il quadro acceso",
-  stopped: "fermo e spento",
-  offline: "nessun dato da oltre 30 minuti",
+  moving: "verde: acceso e in movimento",
+  idle: "arancio: acceso ma fermo",
+  stopped: "rosso: fermo e spento",
+  offline: "grigio: nessun dato da oltre 30 minuti",
   nodata: "il dispositivo non ha mai inviato una posizione",
 };
 

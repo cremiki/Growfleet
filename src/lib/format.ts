@@ -30,11 +30,15 @@ export function fmtDuration(sec: number) {
   return m ? `${h} h ${m} min` : `${h} h`;
 }
 
+/**
+ * Colori dei veicoli: verde acceso e in movimento, arancio acceso ma fermo, rosso spento.
+ * Grigio quando il dispositivo non trasmette, grigio chiaro se non ha mai inviato una posizione.
+ */
 export const STATUS_COLOR: Record<VehicleStatus, string> = {
-  moving: "#0a7a45",
-  idle: "#c98f00",
-  stopped: "#5b6672",
-  offline: "#b3261e",
+  moving: "#0a8a4a",
+  idle: "#e8710a",
+  stopped: "#c62828",
+  offline: "#5b6672",
   nodata: "#9aa5b0",
 };
 

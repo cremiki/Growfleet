@@ -19,7 +19,7 @@
   --color-sign: #0b4f9c;
   --color-sign-dark: #083b75;
   --color-moving: #0a7a45;
-  --color-idle: #c98f00;
+  --color-idle: #e8710a;
   --color-stopped: #5b6672;
   --color-offline: #b3261e;
 }
@@ -36,6 +36,19 @@ body {
 :focus-visible { outline: 2px solid var(--color-sign); outline-offset: 2px; }
 
 .plate { font-family: var(--font-plate); letter-spacing: 0.01em; }
+
+/* Marker: scheda informativa al passaggio del mouse */
+.vm { position: relative; }
+.vm-tip {
+  display: none; position: absolute; left: 0; top: 28px; z-index: 5;
+  min-width: 190px; padding: 8px 10px; background: #fff; color: var(--color-ink);
+  border: 1px solid var(--color-line); border-radius: 6px; box-shadow: 0 4px 14px rgba(24,33,43,.18);
+  font: 400 12.5px/1.45 var(--font-sans); white-space: nowrap; pointer-events: none;
+}
+.vm:hover .vm-tip { display: block; }
+.vm-tip b { font-weight: 600; }
+.vm-tip .row { display: flex; justify-content: space-between; gap: 14px; }
+.vm-tip .k { color: var(--color-muted); }
 
 /* Marker Leaflet: nessuno sfondo bianco del divIcon predefinito */
 .vehicle-icon { background: none; border: none; }

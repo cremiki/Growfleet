@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
 import { MapContainer, Marker, Polyline, TileLayer, useMap, ZoomControl } from "react-leaflet";
 import {
-  HIGHLIGHT_COLOR, ITALY_CENTER, ROUTE_COLOR, stopMarkerHtml, vehicleMarkerHtml, withPosition,
+  HIGHLIGHT_COLOR, ITALY_CENTER, pinHtml, ROUTE_COLOR, stopMarkerHtml, vehicleMarkerHtml, withPosition,
   type Focus, type LiveMapProps, type RouteOverlay,
 } from "./shared";
 
@@ -88,7 +88,7 @@ function Controller({ all, route, focus, selected, fitAllKey }: {
   return null;
 }
 
-export function LeafletLiveMap({ vehicles, selectedId, onSelect, route, focus, fitAllKey }: LiveMapProps) {
+export function LeafletLiveMap({ vehicles, selectedId, onSelect, route, focus, fitAllKey, pin }: LiveMapProps) {
   const located = withPosition(vehicles);
   const all = useMemo(() => located.map((v) => [v.lat, v.lon] as [number, number]), [located]);
   const sel = located.find((v) => v.id === selectedId);
@@ -107,12 +107,13 @@ export function LeafletLiveMap({ vehicles, selectedId, onSelect, route, focus, f
         </>
       )}
       {hl && hl.length > 1 && <Polyline positions={hl} pathOptions={{ color: HIGHLIGHT_COLOR, weight: 6 }} />}
+      {pin && <Marker position={[pin.lat, pin.lon]} icon={htmlIcon(pinHtml(pin.label))} zIndexOffset={1500} riseOnHover />}
       {route?.stops.map((s) => (
         <Marker key={`s${s.n}`} position={[s.lat, s.lon]} icon={htmlIcon(stopMarkerHtml(s.n))} zIndexOffset={500} />
       ))}
       {located.map((v) => (
         <Marker key={v.id} position={[v.lat, v.lon]} icon={htmlIcon(vehicleMarkerHtml(v, v.id === selectedId))}
-          zIndexOffset={v.id === selectedId ? 1000 : 0} eventHandlers={{ click: () => onSelect(v.id) }} title={v.name} />
+          zIndexOffset={v.id === selectedId ? 1000 : 0} riseOnHover riseOffset={2000} eventHandlers={{ click: () => onSelect(v.id) }} />
       ))}
     </MapContainer>
   );

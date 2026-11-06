@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { AdvancedMarker, APIProvider, Map, useMap } from "@vis.gl/react-google-maps";
 import {
-  HIGHLIGHT_COLOR, ITALY_CENTER, ROUTE_COLOR, stopMarkerHtml, vehicleMarkerHtml, withPosition,
+  HIGHLIGHT_COLOR, ITALY_CENTER, pinHtml, ROUTE_COLOR, stopMarkerHtml, vehicleMarkerHtml, withPosition,
   type Focus, type LiveMapProps, type RouteOverlay,
 } from "./shared";
 
@@ -85,7 +85,7 @@ function Lines({ route }: { route: RouteOverlay | null }) {
   return null;
 }
 
-export function GoogleLiveMap({ vehicles, selectedId, onSelect, route, focus, fitAllKey }: LiveMapProps) {
+export function GoogleLiveMap({ vehicles, selectedId, onSelect, route, focus, fitAllKey, pin }: LiveMapProps) {
   const located = withPosition(vehicles);
   const all = useMemo(() => located.map((v) => ({ lat: v.lat, lng: v.lon })), [located]);
   const sel = located.find((v) => v.id === selectedId);
@@ -95,11 +95,12 @@ export function GoogleLiveMap({ vehicles, selectedId, onSelect, route, focus, fi
         mapTypeControl={false} fullscreenControl={false} className="h-full w-full">
         <Controller all={all} route={route} focus={focus} selected={sel ? { lat: sel.lat, lng: sel.lon } : null} fitAllKey={fitAllKey} />
         <Lines route={route} />
+        {pin && <AdvancedMarker position={{ lat: pin.lat, lng: pin.lon }} zIndex={1500}><Html html={pinHtml(pin.label)} /></AdvancedMarker>}
         {route?.stops.map((s) => (
           <AdvancedMarker key={`s${s.n}`} position={{ lat: s.lat, lng: s.lon }} zIndex={500}><Html html={stopMarkerHtml(s.n)} /></AdvancedMarker>
         ))}
         {located.map((v) => (
-          <AdvancedMarker key={v.id} position={{ lat: v.lat, lng: v.lon }} title={v.name}
+          <AdvancedMarker key={v.id} position={{ lat: v.lat, lng: v.lon }}
             zIndex={v.id === selectedId ? 1000 : undefined} onClick={() => onSelect(v.id)}>
             <Html html={vehicleMarkerHtml(v, v.id === selectedId)} />
           </AdvancedMarker>

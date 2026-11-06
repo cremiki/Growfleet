@@ -139,7 +139,7 @@ function NowTab({ v, customerName, onFocus }: { v: VehicleState; customerName?: 
             <div className="mt-2">
               <div className="flex justify-between text-sm">
                 <span>Livello serbatoio</span>
-                <span className="font-semibold">{fmtInt(v.fuelLevel)}%{v.fuelVolume != null ? ` (${fmt1(v.fuelVolume)} l)` : ""}</span>
+                <span className="font-semibold">{fmtInt(v.fuelLevel)}%{v.fuelVolume != null ? ` (${v.fuelFromTank ? "circa " : ""}${fmt1(v.fuelVolume)} l)` : ""}</span>
               </div>
               <div className="h-1.5 bg-asphalt rounded-full mt-1 overflow-hidden">
                 <div className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, v.fuelLevel))}%`, background: v.fuelLevel < 15 ? "#b3261e" : v.fuelLevel < 30 ? "#c98f00" : "#0a7a45" }} />

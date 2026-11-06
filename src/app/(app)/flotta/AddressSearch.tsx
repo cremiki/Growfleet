@@ -5,7 +5,7 @@ import { useState } from "react";
 type Result = { label: string; lat: number; lon: number };
 
 /** "Cerca indirizzo" sulla mappa (OpenStreetMap) */
-export function AddressSearch({ onPick }: { onPick: (r: Result) => void }) {
+export function AddressSearch({ onPick, placeholder = "Cerca indirizzo" }: { onPick: (r: Result) => void; placeholder?: string }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<Result[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -29,9 +29,9 @@ export function AddressSearch({ onPick }: { onPick: (r: Result) => void }) {
   };
 
   return (
-    <div className="w-64">
+    <div className="w-80">
       <form onSubmit={run} className="flex bg-white border border-line rounded shadow-sm">
-        <input value={q} onChange={(e) => { setQ(e.target.value); setResults(null); }} placeholder="Cerca indirizzo"
+        <input value={q} onChange={(e) => { setQ(e.target.value); setResults(null); }} placeholder={placeholder}
           aria-label="Cerca indirizzo" className="flex-1 min-w-0 px-2.5 py-1.5 text-sm rounded-l outline-none" />
         <button className="px-2 text-muted hover:text-ink" aria-label="Cerca" disabled={busy}>
           <svg viewBox="0 0 20 20" className="size-4" aria-hidden><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" strokeWidth="1.8" fill="none" /><path d="M13 13l4.5 4.5" stroke="currentColor" strokeWidth="1.8" /></svg>
