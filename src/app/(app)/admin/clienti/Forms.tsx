@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import type { Subaccount } from "@/lib/types";
 import { createCustomer, createUser, type FormState } from "./actions";
 
 const input = "mt-1 w-full border border-line rounded-md px-3 py-2 bg-white";
@@ -18,9 +17,8 @@ function useResetOnOk(state: FormState) {
   return ref;
 }
 
-export function CustomerForm({ subaccounts, subError }: { subaccounts: Subaccount[]; subError: string | null }) {
+export function CustomerForm() {
   const [state, action, pending] = useActionState<FormState, FormData>(createCustomer, {});
-  const [link, setLink] = useState<"new" | "existing" | "none">(subaccounts.length ? "existing" : "new");
   const ref = useResetOnOk(state);
   return (
     <form ref={ref} action={action} className="bg-surface border border-line rounded-md p-4 space-y-3">
@@ -28,18 +26,6 @@ export function CustomerForm({ subaccounts, subError }: { subaccounts: Subaccoun
       <label className="block text-sm font-medium">Nome
         <input name="name" required className={input} placeholder="Ragione sociale" />
       </label>
-      <fieldset className="text-sm space-y-1.5">
-        <legend className="font-medium mb-1">Subaccount flespi</legend>
-        <label className="flex gap-2"><input type="radio" name="link" value="existing" checked={link === "existing"} onChange={() => setLink("existing")} disabled={!subaccounts.length} />Collega uno esistente</label>
-        <label className="flex gap-2"><input type="radio" name="link" value="new" checked={link === "new"} onChange={() => setLink("new")} />Crea un nuovo subaccount</label>
-        <label className="flex gap-2"><input type="radio" name="link" value="none" checked={link === "none"} onChange={() => setLink("none")} />Collega più tardi</label>
-      </fieldset>
-      {link === "existing" && (
-        <select name="cid" className={input} required>
-          {subaccounts.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.id})</option>)}
-        </select>
-      )}
-      {subError && <p className="text-xs text-muted">{subError}</p>}
       <Feedback state={state} />
       <button disabled={pending} className="w-full bg-sign hover:bg-sign-dark text-white font-semibold rounded-md py-2 disabled:opacity-60">
         {pending ? "Creazione…" : "Crea cliente"}

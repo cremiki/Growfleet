@@ -41,23 +41,29 @@ export async function destroySession() {
 
 /**
  * Perimetro dati dell'utente.
- * - admin: tutto l'account flespi (incluso ogni subaccount); può filtrare per cliente.
- * - customer: solo il subaccount flespi del proprio cliente.
- * Il cid viene letto dal DB a ogni richiesta, così una modifica in admin ha effetto subito.
+ * - admin: tutti i veicoli visibili al token flespi; può restringere a un cliente.
+ * - customer: solo i dispositivi assegnati al suo cliente (tabella customer_devices).
+ * Le assegnazioni vengono lette dal DB a ogni richiesta: una modifica in admin ha effetto subito.
  */
-export type Scope = { kind: "all" } | { kind: "customer"; cid: number };
+export type Scope = { kind: "all" } | { kind: "customer"; customerId: number; deviceIds: number[] };
 
 export class ScopeError extends Error {}
 
-export async function scopeFor(s: SessionPayload, filterCid?: number | null): Promise<Scope> {
+async function devicesOf(customerId: number): Promise<number[]> {
+  const db = await getDb();
+  const rows = await db.select({ d: schema.customerDevices.deviceId }).from(schema.customerDevices)
+    .where(eq(schema.customerDevices.customerId, customerId));
+  return rows.map((r) => r.d);
+}
+
+export async function scopeFor(s: SessionPayload, filterCustomerId?: number | null): Promise<Scope> {
   if (s.role === "admin") {
-    return filterCid ? { kind: "customer", cid: filterCid } : { kind: "all" };
+    return filterCustomerId
+      ? { kind: "customer", customerId: filterCustomerId, deviceIds: await devicesOf(filterCustomerId) }
+      : { kind: "all" };
   }
   if (!s.customerId) throw new ScopeError("Utente senza cliente associato.");
-  const db = await getDb();
-  const [c] = await db.select().from(schema.customers).where(eq(schema.customers.id, s.customerId));
-  if (!c?.flespiCid) throw new ScopeError("Il cliente non è collegato a un subaccount flespi.");
-  return { kind: "customer", cid: c.flespiCid };
+  return { kind: "customer", customerId: s.customerId, deviceIds: await devicesOf(s.customerId) };
 }
 
 export { isMock };

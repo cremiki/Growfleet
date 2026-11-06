@@ -47,15 +47,16 @@ async function bootstrap(db: DB) {
   } else if (isMock) {
     // Account di prova per la modalità demo
     const hash = await bcrypt.hash("demo1234", 10);
-    const [c] = await db.insert(schema.customers)
-      .values({ name: "Trasporti Rossi S.r.l.", flespiCid: 1001 })
-      .onConflictDoNothing().returning();
-    await db.insert(schema.customers)
-      .values({ name: "Logistica Bianchi", flespiCid: 1002 })
-      .onConflictDoNothing();
+    const [rossi, bianchi] = await db.insert(schema.customers)
+      .values([{ name: "Trasporti Rossi S.r.l." }, { name: "Logistica Bianchi" }])
+      .returning();
+    await db.insert(schema.customerDevices).values([
+      ...[501, 502, 503, 504, 505].map((deviceId) => ({ customerId: rossi.id, deviceId })),
+      ...[601, 602, 603, 604].map((deviceId) => ({ customerId: bianchi.id, deviceId })),
+    ]).onConflictDoNothing();
     await db.insert(schema.users).values([
       { email: "admin@demo.it", name: "Team operativo", passwordHash: hash, role: "admin" },
-      { email: "cliente@demo.it", name: "Marco Rossi", passwordHash: hash, role: "customer", customerId: c?.id ?? 1 },
+      { email: "cliente@demo.it", name: "Marco Rossi", passwordHash: hash, role: "customer", customerId: rossi.id },
     ]).onConflictDoNothing();
   }
 }

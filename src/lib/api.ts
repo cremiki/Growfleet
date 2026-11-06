@@ -10,14 +10,14 @@ export async function withScope(
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Sessione scaduta: accedi di nuovo." }, { status: 401 });
   try {
-    const cidParam = new URL(req.url).searchParams.get("cid");
-    const scope = await scopeFor(session, cidParam ? Number(cidParam) : null);
+    const customerParam = new URL(req.url).searchParams.get("customer");
+    const scope = await scopeFor(session, customerParam ? Number(customerParam) : null);
     return await fn(scope);
   } catch (e) {
     if (e instanceof ScopeError) return NextResponse.json({ error: e.message }, { status: 403 });
     if (e instanceof FlespiError) {
       const msg = e.status === 401 || e.status === 403
-        ? "flespi ha rifiutato il token: controlla FLESPI_TOKEN."
+        ? "flespi ha rifiutato il token: verifica FLESPI_TOKEN nella pagina Collegamento flespi."
         : `Errore da flespi: ${e.message}`;
       return NextResponse.json({ error: msg }, { status: 502 });
     }

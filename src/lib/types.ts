@@ -40,7 +40,7 @@ export type TrackPoint = {
   ignition: boolean | null;
 };
 
-export type Subaccount = { id: number; name: string };
+export type DeviceSummary = { id: number; name: string; ident: string };
 
 export const STATUS_LABEL: Record<VehicleStatus, string> = {
   moving: "In marcia",

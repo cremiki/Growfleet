@@ -9,11 +9,11 @@ import { STATUS_COLOR } from "@/lib/format";
 import { VehicleList } from "./VehicleList";
 import { VehiclePanel } from "./VehiclePanel";
 
-type Props = { isAdmin: boolean; customers: { name: string; cid: number }[] };
+type Props = { isAdmin: boolean; customers: { id: number; name: string; deviceIds: number[] }[] };
 
 export function FleetView({ isAdmin, customers }: Props) {
-  const [cid, setCid] = useState<number | null>(null);
-  const { vehicles, error, updatedAt } = useVehicles(cid);
+  const [customerId, setCustomerId] = useState<number | null>(null);
+  const { vehicles, error, updatedAt } = useVehicles(customerId);
   const [provider, setProvider] = useMapProvider();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [query, setQuery] = useState("");
@@ -39,23 +39,23 @@ export function FleetView({ isAdmin, customers }: Props) {
   }, [vehicles, query, statusFilter]);
 
   const selected: VehicleState | undefined = vehicles?.find((v) => v.id === selectedId);
-  const customerName = (c: number | null) => customers.find((x) => x.cid === c)?.name;
+  const customerName = (deviceId: number) => customers.filter((c) => c.deviceIds.includes(deviceId)).map((c) => c.name).join(", ") || undefined;
 
   return (
     <div className="h-full flex flex-col-reverse md:grid md:grid-cols-[minmax(340px,400px)_1fr]">
       <aside className="flex-1 md:flex-none min-h-0 bg-surface border-r border-line flex flex-col">
         {selected ? (
-          <VehiclePanel vehicle={selected} customerName={isAdmin ? customerName(selected.cid) : undefined} onBack={() => select(null)} />
+          <VehiclePanel vehicle={selected} customerName={isAdmin ? customerName(selected.id) : undefined} onBack={() => select(null)} />
         ) : (
           <>
             <div className="p-4 space-y-3 border-b border-line">
               {isAdmin && customers.length > 0 && (
                 <label className="block">
                   <span className="sr-only">Cliente</span>
-                  <select value={cid ?? ""} onChange={(e) => { setCid(e.target.value ? Number(e.target.value) : null); select(null); }}
+                  <select value={customerId ?? ""} onChange={(e) => { setCustomerId(e.target.value ? Number(e.target.value) : null); select(null); }}
                     className="w-full border border-line rounded-md px-3 py-2 bg-white">
                     <option value="">Tutti i clienti</option>
-                    {customers.map((c) => <option key={c.cid} value={c.cid}>{c.name}</option>)}
+                    {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </label>
               )}
@@ -65,7 +65,7 @@ export function FleetView({ isAdmin, customers }: Props) {
               <StatusFilter vehicles={vehicles ?? []} value={statusFilter} onChange={setStatusFilter} />
             </div>
             <VehicleList vehicles={filtered} loading={!vehicles && !error} total={vehicles?.length ?? 0}
-              onSelect={select} customerName={isAdmin && !cid ? customerName : undefined} />
+              onSelect={select} customerName={isAdmin && !customerId ? customerName : undefined} />
           </>
         )}
         <footer className="px-4 py-2 border-t border-line text-xs text-muted flex justify-between">

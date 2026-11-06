@@ -10,12 +10,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="h-dvh flex flex-col">
       <header className="bg-sign text-white flex items-center gap-6 px-4 h-13 shrink-0">
         <Link href="/flotta" className="plate text-2xl font-bold tracking-wide">Flotta</Link>
-        <nav className="flex items-center gap-1 text-[15px]">
+        <nav className="flex items-center gap-1 text-[15px] overflow-x-auto whitespace-nowrap min-w-0">
           <NavLink href="/flotta">Veicoli</NavLink>
           {s.role === "admin" && <NavLink href="/admin/clienti">Clienti e utenti</NavLink>}
+          {s.role === "admin" && <NavLink href="/admin/flespi">Collegamento flespi</NavLink>}
         </nav>
         {isMock && (
-          <span className="text-sm bg-idle text-ink font-semibold px-2 py-0.5 rounded-sm" title="Imposta FLESPI_TOKEN per usare i dati reali">
+          <span className="hidden md:inline text-sm bg-idle text-ink font-semibold px-2 py-0.5 rounded-sm" title="Imposta FLESPI_TOKEN per usare i dati reali">
             Demo
           </span>
         )}

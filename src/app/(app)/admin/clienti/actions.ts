@@ -6,43 +6,17 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { getDb, schema } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
-import { fleet } from "@/lib/flespi";
 
 export type FormState = { error?: string; ok?: string };
 
-const customerSchema = z.object({
-  name: z.string().trim().min(2, "Inserisci il nome del cliente."),
-  link: z.enum(["new", "existing", "none"]),
-  cid: z.coerce.number().int().positive().optional(),
-});
-
 export async function createCustomer(_: FormState, form: FormData): Promise<FormState> {
   await requireAdmin();
-  const parsed = customerSchema.safeParse({
-    name: form.get("name"),
-    link: form.get("link"),
-    cid: form.get("cid") || undefined,
-  });
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
-  const { name, link } = parsed.data;
-  let cid: number | null = null;
-  try {
-    if (link === "new") cid = (await fleet.createSubaccount(name)).id;
-    if (link === "existing") {
-      if (!parsed.data.cid) return { error: "Scegli il subaccount flespi da collegare." };
-      cid = parsed.data.cid;
-    }
-  } catch (e) {
-    return { error: `flespi non ha creato il subaccount: ${(e as Error).message}` };
-  }
+  const name = String(form.get("name") ?? "").trim();
+  if (name.length < 2) return { error: "Inserisci il nome del cliente." };
   const db = await getDb();
-  try {
-    await db.insert(schema.customers).values({ name, flespiCid: cid });
-  } catch {
-    return { error: "Questo subaccount flespi è già collegato a un altro cliente." };
-  }
+  await db.insert(schema.customers).values({ name });
   revalidatePath("/admin/clienti");
-  return { ok: `Cliente ${name} creato${cid ? ` e collegato al subaccount ${cid}` : ""}.` };
+  return { ok: `Cliente ${name} creato. Ora assegnagli i veicoli.` };
 }
 
 export async function deleteCustomer(form: FormData) {
@@ -51,6 +25,20 @@ export async function deleteCustomer(form: FormData) {
   const db = await getDb();
   await db.delete(schema.customers).where(eq(schema.customers.id, id));
   revalidatePath("/admin/clienti");
+}
+
+export async function saveAssignments(_: FormState, form: FormData): Promise<FormState> {
+  await requireAdmin();
+  const customerId = Number(form.get("customerId"));
+  const ids = Array.from(new Set(form.getAll("device").map(Number).filter((n) => Number.isInteger(n) && n > 0)));
+  const db = await getDb();
+  await db.transaction(async (tx) => {
+    await tx.delete(schema.customerDevices).where(eq(schema.customerDevices.customerId, customerId));
+    if (ids.length) await tx.insert(schema.customerDevices).values(ids.map((deviceId) => ({ customerId, deviceId })));
+  });
+  revalidatePath("/admin/clienti");
+  revalidatePath(`/admin/clienti/${customerId}`);
+  return { ok: ids.length === 1 ? "1 veicolo assegnato." : `${ids.length} veicoli assegnati.` };
 }
 
 const userSchema = z.object({

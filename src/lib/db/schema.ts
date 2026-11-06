@@ -1,16 +1,25 @@
-import { integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { integer, pgTable, primaryKey, serial, text, timestamp } from "drizzle-orm/pg-core";
 
-/** Un cliente del servizio. Corrisponde a un subaccount flespi (flespi_cid). */
+/** Un cliente del servizio. I suoi veicoli sono quelli assegnati in customer_devices. */
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  flespiCid: integer("flespi_cid").unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+/** Assegnazione dei dispositivi flespi (per ID) ai clienti */
+export const customerDevices = pgTable(
+  "customer_devices",
+  {
+    customerId: integer("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
+    deviceId: integer("device_id").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.customerId, t.deviceId] })],
+);
+
 export type Role = "admin" | "customer";
 
-/** Utenti: 'admin' = il tuo team (vede tutto), 'customer' = utente di un cliente (vede solo il suo subaccount). */
+/** Utenti: 'admin' = il tuo team (vede tutto), 'customer' = utente di un cliente (vede solo i veicoli assegnati). */
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
@@ -32,9 +41,14 @@ export const BOOTSTRAP_SQL = `
 CREATE TABLE IF NOT EXISTS customers (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
-  flespi_cid INTEGER UNIQUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE TABLE IF NOT EXISTS customer_devices (
+  customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  device_id INTEGER NOT NULL,
+  PRIMARY KEY (customer_id, device_id)
+);
+CREATE INDEX IF NOT EXISTS customer_devices_device_idx ON customer_devices (device_id);
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,

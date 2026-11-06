@@ -1,7 +1,8 @@
 import "server-only";
 import type { Scope } from "../auth/session";
-import type { Subaccount, TelemetryEntry, TrackPoint, VehicleDetail, VehicleState } from "../types";
+import type { DeviceSummary, TelemetryEntry, TrackPoint, VehicleDetail, VehicleState } from "../types";
 import { computeStatus } from "./normalize";
+import { coverage, type Diagnosis } from "./diagnose";
 
 /**
  * Modalità demo: veicoli simulati con movimento deterministico.
@@ -93,7 +94,7 @@ function state(d: Def, now: number): VehicleState {
 }
 
 const now = () => Math.floor(Date.now() / 1000);
-const inScope = (scope: Scope, d: Def) => scope.kind === "all" || scope.cid === d.cid;
+const inScope = (scope: Scope, d: Def) => scope.kind === "all" || scope.deviceIds.includes(d.id);
 
 export async function listVehicles(scope: Scope): Promise<VehicleState[]> {
   const n = now();
@@ -132,17 +133,21 @@ export async function getTrack(scope: Scope, id: number, from: number, to: numbe
   return out;
 }
 
-let nextSub = 1004;
-const subs: Subaccount[] = [
-  { id: 1001, name: "Trasporti Rossi S.r.l." },
-  { id: 1002, name: "Logistica Bianchi" },
-  { id: 1003, name: "Cliente in prova" },
-];
-export async function listSubaccounts(): Promise<Subaccount[]> {
-  return [...subs];
+export async function listDevices(): Promise<DeviceSummary[]> {
+  return D.map((d) => ({ id: d.id, name: d.name, ident: d.ident })).sort((a, b) => a.name.localeCompare(b.name, "it"));
 }
-export async function createSubaccount(name: string): Promise<Subaccount> {
-  const s = { id: nextSub++, name };
-  subs.push(s);
-  return s;
+
+export async function diagnose(): Promise<Diagnosis> {
+  const devices = await Promise.all(D.map(async (d) => {
+    const v = await getVehicle({ kind: "all" }, d.id);
+    const tel = Object.fromEntries((v?.telemetry ?? []).map((t) => [t.name, t.value]));
+    return coverage({ id: d.id, name: d.name, configuration: { ident: d.ident }, messages_ttl: 31536000 }, tel);
+  }));
+  return {
+    mock: true,
+    configured: false,
+    tokenInfo: null,
+    devices,
+    checks: [{ title: "Modalità demo", status: "warn", detail: "FLESPI_TOKEN non è impostato: stai vedendo veicoli simulati. Aggiungi il token nelle variabili d'ambiente di Vercel e ripubblica." }],
+  };
 }

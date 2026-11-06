@@ -1,8 +1,8 @@
+import Link from "next/link";
 import { asc } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth/session";
 import { getDb, schema } from "@/lib/db";
 import { fleet } from "@/lib/flespi";
-import type { Subaccount } from "@/lib/types";
 import { deleteCustomer, deleteUser } from "./actions";
 import { CustomerForm, UserForm } from "./Forms";
 
@@ -11,21 +11,20 @@ export const dynamic = "force-dynamic";
 export default async function CustomersPage() {
   const me = await requireAdmin();
   const db = await getDb();
-  const [customers, users] = await Promise.all([
+  const [customers, users, links] = await Promise.all([
     db.select().from(schema.customers).orderBy(asc(schema.customers.name)),
     db.select().from(schema.users).orderBy(asc(schema.users.email)),
+    db.select().from(schema.customerDevices),
   ]);
 
-  let subaccounts: Subaccount[] = [];
-  let subError: string | null = null;
+  let unassigned: number | null = null;
   try {
-    subaccounts = await fleet.listSubaccounts();
-  } catch (e) {
-    subError = `Non riesco a leggere i subaccount flespi (serve un token Master): ${(e as Error).message}`;
+    const all = await fleet.listDevices();
+    const assigned = new Set(links.map((l) => l.deviceId));
+    unassigned = all.filter((d) => !assigned.has(d.id)).length;
+  } catch {
+    /* flespi non raggiungibile: la pagina resta utilizzabile */
   }
-  const linked = new Set(customers.map((c) => c.flespiCid));
-  const freeSubs = subaccounts.filter((s) => !linked.has(s.id));
-  const subName = new Map(subaccounts.map((s) => [s.id, s.name]));
 
   return (
     <div className="h-full overflow-y-auto">
@@ -33,28 +32,40 @@ export default async function CustomersPage() {
         <div className="space-y-10 min-w-0">
           <section>
             <h1 className="plate text-3xl font-bold">Clienti</h1>
-            <p className="text-muted mt-1">Ogni cliente corrisponde a un subaccount flespi: i suoi utenti vedono solo i veicoli di quel subaccount.</p>
+            <p className="text-muted mt-1">Gli utenti di un cliente vedono solo i veicoli che gli assegni qui.</p>
+            {unassigned ? (
+              <p className="mt-3 border-l-4 border-idle bg-surface px-3 py-2 text-sm">
+                {unassigned === 1 ? "1 veicolo non è assegnato" : `${unassigned} veicoli non sono assegnati`} a nessun cliente: li vede solo il team.
+              </p>
+            ) : null}
             {customers.length === 0 ? (
               <p className="mt-4 text-muted">Nessun cliente. Creane uno con il modulo a destra.</p>
             ) : (
               <table className="w-full mt-4 bg-surface border border-line text-[15px]">
                 <thead className="text-left text-sm text-muted">
-                  <tr className="border-b border-line"><th className="p-3 font-medium">Nome</th><th className="p-3 font-medium">Subaccount flespi</th><th className="p-3 font-medium">Utenti</th><th /></tr>
+                  <tr className="border-b border-line"><th className="p-3 font-medium">Nome</th><th className="p-3 font-medium">Veicoli</th><th className="p-3 font-medium">Utenti</th><th /></tr>
                 </thead>
                 <tbody>
-                  {customers.map((c) => (
-                    <tr key={c.id} className="border-b border-line last:border-0">
-                      <td className="p-3 font-semibold">{c.name}</td>
-                      <td className="p-3">{c.flespiCid ? <>{c.flespiCid}{subName.get(c.flespiCid) ? <span className="text-muted">, {subName.get(c.flespiCid)}</span> : null}</> : <span className="text-offline">Non collegato</span>}</td>
-                      <td className="p-3">{users.filter((u) => u.customerId === c.id).length}</td>
-                      <td className="p-3 text-right">
-                        <form action={deleteCustomer}>
-                          <input type="hidden" name="id" value={c.id} />
-                          <button className="text-sm text-offline hover:underline" title="Elimina il cliente e i suoi utenti. I dati in flespi non vengono toccati.">Elimina</button>
-                        </form>
-                      </td>
-                    </tr>
-                  ))}
+                  {customers.map((c) => {
+                    const n = links.filter((l) => l.customerId === c.id).length;
+                    return (
+                      <tr key={c.id} className="border-b border-line last:border-0">
+                        <td className="p-3 font-semibold">{c.name}</td>
+                        <td className="p-3">
+                          <Link href={`/admin/clienti/${c.id}`} className="text-sign font-medium hover:underline">
+                            {n === 0 ? "Assegna veicoli" : n === 1 ? "1 veicolo" : `${n} veicoli`}
+                          </Link>
+                        </td>
+                        <td className="p-3">{users.filter((u) => u.customerId === c.id).length}</td>
+                        <td className="p-3 text-right">
+                          <form action={deleteCustomer}>
+                            <input type="hidden" name="id" value={c.id} />
+                            <button className="text-sm text-offline hover:underline" title="Elimina il cliente e i suoi utenti. I dispositivi in flespi non vengono toccati.">Elimina</button>
+                          </form>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
@@ -88,7 +99,7 @@ export default async function CustomersPage() {
         </div>
 
         <div className="space-y-8">
-          <CustomerForm subaccounts={freeSubs} subError={subError} />
+          <CustomerForm />
           <UserForm customers={customers.map((c) => ({ id: c.id, name: c.name }))} />
         </div>
       </div>

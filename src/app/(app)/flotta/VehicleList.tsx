@@ -9,7 +9,7 @@ type Props = {
   total: number;
   loading: boolean;
   onSelect: (id: number) => void;
-  customerName?: (cid: number | null) => string | undefined;
+  customerName?: (deviceId: number) => string | undefined;
 };
 
 export function VehicleList({ vehicles, total, loading, onSelect, customerName }: Props) {
@@ -46,7 +46,7 @@ export function VehicleList({ vehicles, total, loading, onSelect, customerName }
               <span className="plate block text-[19px] font-semibold leading-tight truncate">{v.name}</span>
               <span className="block text-sm text-muted mt-0.5 truncate">
                 {STATUS_LABEL[v.status]}
-                {customerName && customerName(v.cid) ? <span className="text-muted/80">, {customerName(v.cid)}</span> : null}
+                {customerName && customerName(v.id) ? <span className="text-muted/80">, {customerName(v.id)}</span> : null}
               </span>
             </span>
             <span className="shrink-0 px-4 py-3 text-right">
