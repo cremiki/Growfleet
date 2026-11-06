@@ -15,7 +15,7 @@ Browser ──► Next.js (API /api/*, login, sessione) ──► flespi REST (f
 - **Elenco veicoli** con ricerca e filtro per stato (in marcia, fermo con quadro acceso, spento, non raggiungibile).
 - **Stato del veicolo**: quadro, velocità, carburante, contachilometri, ore motore, alimentazione, satelliti, più l'elenco completo dei parametri del dispositivo.
 - **Mappa live** con OpenStreetMap (gratis) o Google Maps (con chiave), aggiornata ogni 10 secondi.
-- **Storico percorsi**: oggi, ieri, ultime 24 ore o date a scelta (max 7 giorni), con distanza, tempo in marcia, velocità, elenco viaggi e riproduzione del percorso.
+- **Pannello veicolo** con le schede *Adesso* (stato e da quanto, indirizzo, contachilometri CAN/GPS, riepilogo di oggi, carburante, altri dati) e *Itinerari* (giorno per giorno: soste numerate con indirizzo, tragitti, riepilogo e percorso sulla mappa). Indirizzi da OpenStreetMap con cache nel database.
 - **Report**: catalogo per categorie con ricerca e preferiti; ogni report ha scelta di veicoli, periodo e fascia oraria, tabella raggruppata con totali, scelta delle colonne, esportazione Excel (CSV) e stampa/PDF. Disponibili: Itinerari, Rapporto mensile (km), Report mensile (ore), Ore lavorative (chiave on), Mensile GPS e CAN, Fermate, Coordinate, Posizionamento flotta, Tensione di alimentazione, Riepilogo per veicoli, Riepilogo per giorni, Eccesso di velocità. Gli altri sono nel catalogo come "In arrivo", con il motivo.
 - **Pannello admin**: clienti, utenti e assegnazione dei veicoli; pagina *Collegamento flespi* che verifica il token, i permessi, la conservazione dei messaggi e quali parametri inviano i dispositivi.
 - **Modalità demo**: senza `FLESPI_TOKEN` l'app parte con 9 veicoli simulati.
