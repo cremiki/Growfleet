@@ -1,0 +1,46 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+/*
+  Identità visiva "segnaletica stradale":
+  blu delle indicazioni = marchio, verde autostrada = in marcia,
+  giallo cantiere = fermo con quadro acceso, grigio = spento, rosso = non raggiungibile.
+  Carattere: Barlow, disegnato a partire dalla segnaletica autostradale.
+*/
+@theme {
+  --font-sans: "Barlow", system-ui, sans-serif;
+  --font-plate: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
+
+  --color-ink: #18212b;
+  --color-muted: #5e6b78;
+  --color-asphalt: #e6eaee;
+  --color-surface: #ffffff;
+  --color-line: #cdd5dc;
+  --color-sign: #0b4f9c;
+  --color-sign-dark: #083b75;
+  --color-moving: #0a7a45;
+  --color-idle: #c98f00;
+  --color-stopped: #5b6672;
+  --color-offline: #b3261e;
+}
+
+html, body { height: 100%; }
+body {
+  background: var(--color-asphalt);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible { outline: 2px solid var(--color-sign); outline-offset: 2px; }
+
+.plate { font-family: var(--font-plate); letter-spacing: 0.01em; }
+
+/* Marker Leaflet: nessuno sfondo bianco del divIcon predefinito */
+.vehicle-icon { background: none; border: none; }
+.leaflet-container { font-family: var(--font-sans); background: #dfe4e8; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; }
+}
