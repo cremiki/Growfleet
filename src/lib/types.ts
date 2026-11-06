@@ -42,6 +42,7 @@ export type TrackPoint = {
   ignition: boolean | null;
   odometer: number | null; // km (CAN o tracker)
   fuelUsed: number | null; // litri totali consumati (contatore CAN)
+  voltage?: number | null; // tensione di alimentazione esterna
 };
 
 export type DeviceSummary = { id: number; name: string; ident: string };

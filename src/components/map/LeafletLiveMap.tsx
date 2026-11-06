@@ -25,6 +25,8 @@ function Controller({ all, route, focus, selected, fitAllKey }: {
   const lastRoute = useRef("");
   const lastFocus = useRef("");
   const lastSel = useRef("");
+  // ferma le animazioni se la mappa viene smontata a metà (cambio pagina)
+  useEffect(() => () => { map.stop(); }, [map]);
 
   // primo caricamento e "Mostra tutti"
   useEffect(() => {

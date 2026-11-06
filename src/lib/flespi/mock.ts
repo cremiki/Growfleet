@@ -123,7 +123,17 @@ export async function getVehicle(scope: Scope, id: number): Promise<VehicleDetai
 export async function getTrack(scope: Scope, id: number, from: number, to: number): Promise<TrackPoint[] | null> {
   const d = D.find((x) => x.id === id && inScope(scope, x));
   if (!d) return null;
-  if (d.profile !== "drive") return [];
+  if (d.profile !== "drive") {
+    // veicoli fermi: un messaggio ogni 15 minuti (quello offline smette di trasmettere 5 ore fa)
+    const last = d.profile === "offline" ? now() - 5 * 3600 - 1240 : now();
+    const pts: TrackPoint[] = [];
+    const p = posAt(d, from);
+    for (let t = Math.ceil(from / 900) * 900; t <= Math.min(to, last); t += 900) {
+      const on = d.profile === "idle";
+      pts.push({ ts: t, lat: p[0], lon: p[1], speed: 0, ignition: on, odometer: d.odoBase, fuelUsed: Math.round(d.odoBase * 0.075 * 10) / 10, voltage: on ? 27.6 : 24.4 });
+    }
+    return pts;
+  }
   const out: TrackPoint[] = [];
   const end = Math.min(to, now());
   for (let t = from; t <= end; t += 30) {
@@ -131,7 +141,9 @@ export async function getTrack(scope: Scope, id: number, from: number, to: numbe
     // da fermo il tracker invia meno spesso
     if (!s.driving && t % 300 >= 30) continue;
     out.push({ ts: t, lat: s.p[0], lon: s.p[1], speed: s.speed, ignition: s.ignition,
-      odometer: s.odometer, fuelUsed: Math.round(s.odometer * 0.075 * 10) / 10 });
+      odometer: s.odometer, fuelUsed: Math.round(s.odometer * 0.075 * 10) / 10,
+      // tensione simulata, con un'interruzione di alimentazione ogni tanto
+      voltage: (t % 86400) > 7200 && (t % 86400) < 7500 ? 0 : s.ignition ? 27.8 : 24.5 });
   }
   return out;
 }

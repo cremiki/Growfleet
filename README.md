@@ -16,6 +16,7 @@ Browser ──► Next.js (API /api/*, login, sessione) ──► flespi REST (f
 - **Stato del veicolo**: quadro, velocità, carburante, contachilometri, ore motore, alimentazione, satelliti, più l'elenco completo dei parametri del dispositivo.
 - **Mappa live** con OpenStreetMap (gratis) o Google Maps (con chiave), aggiornata ogni 10 secondi.
 - **Storico percorsi**: oggi, ieri, ultime 24 ore o date a scelta (max 7 giorni), con distanza, tempo in marcia, velocità, elenco viaggi e riproduzione del percorso.
+- **Report**: catalogo per categorie con ricerca e preferiti; ogni report ha scelta di veicoli, periodo e fascia oraria, tabella raggruppata con totali, scelta delle colonne, esportazione Excel (CSV) e stampa/PDF. Disponibili: Itinerari, Rapporto mensile (km), Report mensile (ore), Ore lavorative (chiave on), Mensile GPS e CAN, Fermate, Coordinate, Posizionamento flotta, Tensione di alimentazione, Riepilogo per veicoli, Riepilogo per giorni, Eccesso di velocità. Gli altri sono nel catalogo come "In arrivo", con il motivo.
 - **Pannello admin**: clienti, utenti e assegnazione dei veicoli; pagina *Collegamento flespi* che verifica il token, i permessi, la conservazione dei messaggi e quali parametri inviano i dispositivi.
 - **Modalità demo**: senza `FLESPI_TOKEN` l'app parte con 9 veicoli simulati.
 
@@ -65,6 +66,8 @@ Oppure con Docker: `docker build -t flotta . && docker run -p 3000:3000 --env-fi
 
 ## Prossimi passi consigliati
 
+- **Report su periodi lunghi**: oggi i report leggono i messaggi grezzi da flespi (massimo 31 giorni). Con molti veicoli o per report annuali conviene salvare sulla VPS un riepilogo giornaliero per veicolo (km, ore, carburante) e leggere da lì.
+
 - **Storico proprio** (dati che flespi non conserva o conserva poco): sulla VPS, un servizio sempre attivo che riceve i messaggi da flespi con uno *stream HTTP* o un abbonamento MQTT a `flespi/message/gw/devices/+`, e li salva in Postgres + TimescaleDB. Lo storico percorsi può poi leggere da lì invece che da flespi.
 - **Live via MQTT** sulla VPS: il server si abbona a `flespi/state/gw/devices/+/telemetry/+` e inoltra gli aggiornamenti al browser (WebSocket/SSE), così sparisce il polling.
 - **Viaggi e soste da flespi**: i *calculators* di flespi producono intervalli già calcolati, più precisi del calcolo fatto nel browser.
@@ -83,6 +86,9 @@ src/
   lib/db/                       schema Drizzle (customers, customer_devices, users)
   app/api/vehicles/...          API usate dal browser
   app/(app)/flotta/...          elenco, mappa live, dettaglio, storico
+  lib/reports/                  catalogo, calcolo e formato dei report
+  lib/tz.ts                     giorni e orari nel fuso Europe/Rome anche su server UTC
+  app/(app)/report/             catalogo e pagine dei report
   app/(app)/admin/clienti/      clienti, utenti e assegnazione veicoli
   app/(app)/admin/flespi/       verifica del collegamento flespi
   components/map/               mappe OpenStreetMap (Leaflet) e Google

@@ -8,7 +8,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const s = await requireSession();
   return (
     <div className="h-dvh flex flex-col">
-      <header className="bg-surface border-b border-line flex items-center gap-4 pl-3 pr-4 h-12 shrink-0">
+      <header className="bg-surface border-b border-line flex items-center gap-4 pl-3 pr-4 h-12 shrink-0 print:hidden">
         <Link href="/flotta" className="plate text-[22px] font-bold text-sign tracking-wide">Growfleet</Link>
         {isMock && (
           <span className="text-xs bg-idle text-ink font-semibold px-2 py-0.5 rounded-sm" title="Imposta FLESPI_TOKEN per usare i dati reali">

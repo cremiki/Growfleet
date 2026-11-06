@@ -15,7 +15,7 @@ const I = {
 
 const ITEMS: Item[] = [
   { href: "/flotta", label: "Live map", icon: I.map },
-  { href: "/report", label: "Report (in arrivo)", icon: I.report, soon: true },
+  { href: "/report", label: "Report", icon: I.report },
   { href: "/carburante", label: "Carburante (in arrivo)", icon: I.fuel, soon: true },
   { href: "/admin/clienti", label: "Clienti e utenti", icon: I.people, admin: true },
   { href: "/admin/flespi", label: "Collegamento flespi", icon: I.plug, admin: true },
@@ -24,7 +24,7 @@ const ITEMS: Item[] = [
 export function Rail({ isAdmin }: { isAdmin: boolean }) {
   const path = usePathname();
   return (
-    <nav aria-label="Sezioni" className="w-12 shrink-0 bg-ink flex flex-col items-center py-2 gap-1">
+    <nav aria-label="Sezioni" className="w-12 shrink-0 bg-ink flex flex-col items-center py-2 gap-1 print:hidden">
       {ITEMS.filter((i) => !i.admin || isAdmin).map((i) => {
         const active = path.startsWith(i.href);
         const cls = `group relative flex size-10 items-center justify-center rounded ${active ? "bg-white/15 text-white" : "text-white/60 hover:text-white hover:bg-white/10"}`;

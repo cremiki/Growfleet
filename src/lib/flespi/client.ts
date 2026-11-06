@@ -117,7 +117,7 @@ export async function getTrack(scope: Scope, id: number, from: number, to: numbe
         from,
         to,
         fields: ["timestamp", "position.latitude", "position.longitude", "position.speed", "engine.ignition.status",
-          ...PARAMS.odometerKm, ...PARAMS.fuelUsed].join(","),
+          ...PARAMS.odometerKm, ...PARAMS.fuelUsed, ...PARAMS.externalV].join(","),
       }),
     },
   });
@@ -131,6 +131,7 @@ export async function getTrack(scope: Scope, id: number, from: number, to: numbe
       ignition: typeof m["engine.ignition.status"] === "boolean" ? m["engine.ignition.status"] : null,
       odometer: firstNum(m, PARAMS.odometerKm),
       fuelUsed: firstNum(m, PARAMS.fuelUsed),
+      voltage: firstNum(m, PARAMS.externalV),
     }));
 }
 
