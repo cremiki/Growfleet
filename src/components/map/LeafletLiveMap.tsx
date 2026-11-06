@@ -13,6 +13,27 @@ const OSM = {
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 };
 
+/**
+ * Spostamenti senza animazione: se la pagina cambia mentre un'animazione di Leaflet è in corso,
+ * l'animazione continua su una mappa già rimossa e l'app va in errore ("_leaflet_pos").
+ */
+const NO_ANIM = { animate: false } as const;
+
+/*
+ * Difetto noto di Leaflet: la fine di un'animazione di zoom (es. rotellina del mouse) arriva con un
+ * timer anche se la mappa è già stata rimossa, e legge la posizione di un pannello che non esiste più.
+ * Qui la lettura diventa innocua quando la mappa non c'è più.
+ */
+type MapInternals = { _mapPane?: HTMLElement; _getMapPanePos: () => L.Point };
+const proto = L.Map.prototype as unknown as MapInternals;
+if (!(proto as { __growfleetPatched?: boolean }).__growfleetPatched) {
+  const original = proto._getMapPanePos;
+  proto._getMapPanePos = function (this: MapInternals) {
+    return this._mapPane ? original.call(this) : new L.Point(0, 0);
+  };
+  (proto as { __growfleetPatched?: boolean }).__growfleetPatched = true;
+}
+
 const htmlIcon = (html: string) => L.divIcon({ html, className: "vehicle-icon", iconSize: [0, 0], iconAnchor: [0, 0] });
 
 function Controller({ all, route, focus, selected, fitAllKey }: {
@@ -25,8 +46,6 @@ function Controller({ all, route, focus, selected, fitAllKey }: {
   const lastRoute = useRef("");
   const lastFocus = useRef("");
   const lastSel = useRef("");
-  // ferma le animazioni se la mappa viene smontata a metà (cambio pagina)
-  useEffect(() => () => { map.stop(); }, [map]);
 
   // primo caricamento e "Mostra tutti"
   useEffect(() => {
@@ -34,8 +53,8 @@ function Controller({ all, route, focus, selected, fitAllKey }: {
     if (fitted.current && lastFit.current === fitAllKey) return;
     fitted.current = true;
     lastFit.current = fitAllKey;
-    if (all.length === 1) map.setView(all[0], 14);
-    else map.fitBounds(L.latLngBounds(all), { padding: [48, 48], maxZoom: 15 });
+    if (all.length === 1) map.setView(all[0], 14, NO_ANIM);
+    else map.fitBounds(L.latLngBounds(all), { padding: [48, 48], maxZoom: 15, ...NO_ANIM });
   }, [map, all, fitAllKey]);
 
   // percorso o tratto evidenziato
@@ -45,15 +64,15 @@ function Controller({ all, route, focus, selected, fitAllKey }: {
     if (hk === lastRoute.current) return;
     lastRoute.current = hk;
     const pts = route.highlight ? route.points.slice(route.highlight[0], route.highlight[1] + 1) : route.points;
-    if (pts.length === 1) map.setView([pts[0].lat, pts[0].lon], 15);
-    else if (pts.length > 1) map.fitBounds(L.latLngBounds(pts.map((p) => [p.lat, p.lon])), { padding: [40, 40] });
+    if (pts.length === 1) map.setView([pts[0].lat, pts[0].lon], 15, NO_ANIM);
+    else if (pts.length > 1) map.fitBounds(L.latLngBounds(pts.map((p) => [p.lat, p.lon])), { padding: [40, 40], ...NO_ANIM });
   }, [map, route]);
 
   // ricerca indirizzo o sosta selezionata
   useEffect(() => {
     if (!focus || focus.key === lastFocus.current) return;
     lastFocus.current = focus.key;
-    map.flyTo([focus.lat, focus.lon], focus.zoom ?? 16, { duration: 0.5 });
+    map.setView([focus.lat, focus.lon], focus.zoom ?? 16, NO_ANIM);
   }, [map, focus]);
 
   // veicolo selezionato (solo senza percorso a schermo)
@@ -63,8 +82,8 @@ function Controller({ all, route, focus, selected, fitAllKey }: {
     const first = lastSel.current === "";
     if (selKey === lastSel.current) return;
     lastSel.current = selKey;
-    if (first) map.flyTo(selected, Math.max(map.getZoom(), 15), { duration: 0.5 });
-    else map.panTo(selected);
+    if (first) map.setView(selected, Math.max(map.getZoom(), 15), NO_ANIM);
+    else map.panTo(selected, NO_ANIM);
   }, [map, selected, selKey, route]);
   return null;
 }
