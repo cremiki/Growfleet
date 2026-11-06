@@ -3,7 +3,7 @@ import { asc } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth/session";
 import { getDb, schema } from "@/lib/db";
 import { fleet } from "@/lib/flespi";
-import { deleteCustomer, deleteUser } from "./actions";
+import { deleteCustomer, deleteUser, toggleBlockUser } from "./actions";
 import { CustomerForm, UserForm } from "./Forms";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export default async function CustomersPage() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="max-w-5xl mx-auto px-4 py-8 grid lg:grid-cols-[1fr_340px] gap-10">
+      <div className="max-w-7xl mx-auto px-4 py-8 grid xl:grid-cols-[1fr_340px] gap-10">
         <div className="space-y-10 min-w-0">
           <section>
             <h1 className="plate text-3xl font-bold">Clienti</h1>
@@ -75,21 +75,31 @@ export default async function CustomersPage() {
             <h2 className="plate text-3xl font-bold">Utenti</h2>
             <table className="w-full mt-4 bg-surface border border-line text-[15px]">
               <thead className="text-left text-sm text-muted">
-                <tr className="border-b border-line"><th className="p-3 font-medium">Nome</th><th className="p-3 font-medium">Email</th><th className="p-3 font-medium">Accesso</th><th /></tr>
+                <tr className="border-b border-line">
+                  <th className="p-3 font-medium">Nome</th><th className="p-3 font-medium">Email</th><th className="p-3 font-medium">Accesso</th>
+                  <th className="p-3 font-medium">Ultimo accesso</th><th className="p-3 font-medium">Stato</th><th />
+                </tr>
               </thead>
               <tbody>
                 {users.map((u) => (
                   <tr key={u.id} className="border-b border-line last:border-0">
                     <td className="p-3 font-semibold">{u.name}</td>
-                    <td className="p-3 break-all">{u.email}</td>
+                    <td className="p-3 whitespace-nowrap">{u.email}</td>
                     <td className="p-3">{u.role === "admin" ? "Team (tutti i clienti)" : customers.find((c) => c.id === u.customerId)?.name ?? "—"}</td>
-                    <td className="p-3 text-right">
-                      {u.id !== me.uid && (
-                        <form action={deleteUser}>
-                          <input type="hidden" name="id" value={u.id} />
-                          <button className="text-sm text-offline hover:underline">Elimina</button>
-                        </form>
-                      )}
+                    <td className="p-3 whitespace-nowrap text-sm">{u.lastLoginAt ? u.lastLoginAt.toLocaleString("it-IT", { timeZone: "Europe/Rome", dateStyle: "short", timeStyle: "short" }) : <span className="text-muted">mai</span>}</td>
+                    <td className="p-3 text-sm">{u.blocked ? <span className="text-offline font-semibold">Bloccato</span> : "Attivo"}</td>
+                    <td className="p-3 text-right whitespace-nowrap text-sm">
+                      <span className="inline-flex gap-3">
+                        <Link href={`/admin/utenti/${u.id}`} className="text-sign hover:underline">Modifica</Link>
+                        {u.id !== me.uid && (
+                          <>
+                            <form action={toggleBlockUser}><input type="hidden" name="id" value={u.id} />
+                              <button className="text-sign hover:underline">{u.blocked ? "Sblocca" : "Blocca"}</button></form>
+                            <form action={deleteUser}><input type="hidden" name="id" value={u.id} />
+                              <button className="text-offline hover:underline">Elimina</button></form>
+                          </>
+                        )}
+                      </span>
                     </td>
                   </tr>
                 ))}

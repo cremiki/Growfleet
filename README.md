@@ -17,6 +17,9 @@ Browser ──► Next.js (API /api/*, login, sessione) ──► flespi REST (f
 - **Mappa live** con OpenStreetMap (gratis) o Google Maps (con chiave), aggiornata ogni 10 secondi.
 - **Pannello veicolo** con le schede *Adesso* (stato e da quanto, indirizzo, contachilometri CAN/GPS, riepilogo di oggi, carburante, altri dati) e *Itinerari* (giorno per giorno: soste numerate con indirizzo, tragitti, riepilogo e percorso sulla mappa). Indirizzi da OpenStreetMap con cache nel database.
 - **Report**: catalogo per categorie con ricerca e preferiti; ogni report ha scelta di veicoli, periodo e fascia oraria, tabella raggruppata con totali, scelta delle colonne, esportazione Excel (CSV) e stampa/PDF. Disponibili: Itinerari, Rapporto mensile (km), Report mensile (ore), Ore lavorative (chiave on), Mensile GPS e CAN, Fermate, Coordinate, Posizionamento flotta, Tensione di alimentazione, Riepilogo per veicoli, Riepilogo per giorni, Eccesso di velocità. Gli altri sono nel catalogo come "In arrivo", con il motivo.
+- **Flotta e manutenzione**: elenco dei veicoli con totali del mese (km, ore motore, carburante dai contatori del veicolo) e profilo di ogni veicolo con anagrafica (targa, marca e modello, tipo, autista, carburante, serbatoio, consumo di riferimento, limiti di guida), promemoria di manutenzione per data, km o ore motore e scadenze dei documenti. Targa, tipo ed etichetta vengono usati in mappa e report; il limite di velocità del veicolo nel report Eccesso di velocità.
+- **Utenti**: modifica, blocco (effetto immediato), reimpostazione password, ultimo accesso; ogni utente cambia nome e password da *Il mio account*.
+- **Aiuto**: contatti del supporto (`SUPPORT_EMAIL`, `SUPPORT_PHONE`) e guida rapida.
 - **Pannello admin**: clienti, utenti e assegnazione dei veicoli; pagina *Collegamento flespi* che verifica il token, i permessi, la conservazione dei messaggi e quali parametri inviano i dispositivi.
 - **Modalità demo**: senza `FLESPI_TOKEN` l'app parte con 9 veicoli simulati.
 
@@ -83,7 +86,9 @@ src/
   lib/flespi/normalize.ts       telemetria flespi -> stato veicolo
   lib/flespi/mock.ts            veicoli simulati (modalità demo)
   lib/auth/                     sessione (cookie JWT firmato) e perimetro dati
-  lib/db/                       schema Drizzle (customers, customer_devices, users)
+  lib/db/                       schema Drizzle (customers, customer_devices, users, vehicles, vehicle_reminders, geocache)
+  lib/vehicleStats.ts           km, ore e litri del mese dai contatori (poche chiamate a flespi)
+  app/(app)/veicoli/            Flotta, profilo e modifica del veicolo, promemoria e scadenze
   app/api/vehicles/...          API usate dal browser
   app/(app)/flotta/...          elenco, mappa live, dettaglio, storico
   lib/reports/                  catalogo, calcolo e formato dei report

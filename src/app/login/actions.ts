@@ -19,6 +19,8 @@ export async function login(_: LoginState, form: FormData): Promise<LoginState> 
   if (!u || !(await bcrypt.compare(password, u.passwordHash))) {
     return { error: "Email o password non corrette." };
   }
+  if (u.blocked) return { error: "Questo account è bloccato. Contatta il tuo referente." };
+  await db.update(schema.users).set({ lastLoginAt: new Date() }).where(eq(schema.users.id, u.id));
   await createSession({ uid: u.id, role: u.role, customerId: u.customerId, name: u.name, email: u.email });
   redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/flotta");
 }

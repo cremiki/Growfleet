@@ -85,8 +85,9 @@ function NowTab({ v, customerName, onFocus }: { v: VehicleState; customerName?: 
     <div className="text-[14px]">
       <section className="px-3 py-3 space-y-1.5">
         <div className="flex items-center gap-2">
-          <StatusIcon status={v.status} course={v.course} />
+          <StatusIcon status={v.status} course={v.course} type={v.vtype} />
           <h2 className="plate text-xl font-bold leading-tight">{v.name}</h2>
+          {v.makeModel && <span className="text-muted">{v.makeModel}</span>}
         </div>
         <p className="font-medium" style={{ color: STATUS_COLOR[v.status] }}>
           {STATUS_LABEL[v.status]}
@@ -94,6 +95,7 @@ function NowTab({ v, customerName, onFocus }: { v: VehicleState; customerName?: 
           {since && v.status !== "offline" && v.status !== "nodata" && <span className="text-muted">({dur(now - since)})</span>}
         </p>
         {customerName && <Row icon="customer">{customerName}</Row>}
+        {v.driver && <Row icon="customer">Autista: {v.driver}</Row>}
         {v.lat != null && (
           <>
             <Row icon="pin">{addr ?? <span className="text-muted">ricerca indirizzo…</span>}</Row>
@@ -111,11 +113,14 @@ function NowTab({ v, customerName, onFocus }: { v: VehicleState; customerName?: 
             {v.engineHours != null && <span className="block">{fmtInt(v.engineHours)} h motore</span>}
           </Row>
         )}
-        {v.lat != null && (
-          <a href={`https://www.google.com/maps?q=${v.lat},${v.lon}`} target="_blank" rel="noreferrer" className="inline-block text-sign text-sm hover:underline">
-            Apri in Google Maps
-          </a>
-        )}
+        <p className="flex gap-4 text-sm">
+          <a href={`/veicoli/${v.id}`} className="text-sign hover:underline">Profilo del veicolo</a>
+          {v.lat != null && (
+            <a href={`https://www.google.com/maps?q=${v.lat},${v.lon}`} target="_blank" rel="noreferrer" className="text-sign hover:underline">
+              Apri in Google Maps
+            </a>
+          )}
+        </p>
       </section>
 
       <section className="border-t border-line px-3 py-3">

@@ -13,15 +13,20 @@ export function VehicleCard({ v, address, customerName, onOpen }: {
   return (
     <button type="button" onClick={onOpen} className="w-full text-left block border-b border-line px-3 py-2.5 hover:bg-asphalt/50 focus-visible:bg-asphalt/50">
       <span className="flex items-center gap-2">
-        <StatusIcon status={v.status} course={v.course} />
-        <span className="plate font-bold text-[17px] truncate flex-1">{v.name}</span>
+        <StatusIcon status={v.status} course={v.course} type={v.vtype} />
+        <span className="flex-1 min-w-0 truncate">
+          <span className="plate font-bold text-[17px]">{v.name}</span>
+          {v.makeModel && <span className="text-sm text-muted ml-1.5">{v.makeModel}</span>}
+        </span>
         <span className={`text-xs ${stale ? "text-offline font-semibold" : "text-muted"}`}>{ago(v.lastSeen)}</span>
         <span className="text-[11px] border border-line rounded px-1 text-muted whitespace-nowrap">{fmtInt(v.speed ?? 0)} km/h</span>
       </span>
       <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[13px]">
         <dt className="text-muted">Stato</dt>
         <dd className="text-right font-medium" style={{ color: STATUS_COLOR[v.status] }}>{STATUS_LABEL[v.status]}</dd>
+        {v.unavailable && (<><dt className="text-muted">Disponibilità</dt><dd className="text-right text-offline font-medium">Non disponibile</dd></>)}
         {customerName && (<><dt className="text-muted">Cliente</dt><dd className="text-right">{customerName}</dd></>)}
+        {v.driver && (<><dt className="text-muted">Autista</dt><dd className="text-right">{v.driver}</dd></>)}
         {v.lat != null && (
           <>
             <dt className="text-muted">Indirizzo</dt>

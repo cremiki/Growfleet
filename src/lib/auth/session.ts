@@ -14,6 +14,10 @@ export async function getSession(): Promise<SessionPayload | null> {
 export async function requireSession(): Promise<SessionPayload> {
   const s = await getSession();
   if (!s) redirect("/login");
+  // un utente bloccato o eliminato perde l'accesso anche se ha ancora la sessione aperta
+  const db = await getDb();
+  const [u] = await db.select({ blocked: schema.users.blocked }).from(schema.users).where(eq(schema.users.id, s.uid));
+  if (!u || u.blocked) redirect("/login?bloccato=1");
   return s;
 }
 
@@ -57,6 +61,9 @@ async function devicesOf(customerId: number): Promise<number[]> {
 }
 
 export async function scopeFor(s: SessionPayload, filterCustomerId?: number | null): Promise<Scope> {
+  const db = await getDb();
+  const [u] = await db.select({ blocked: schema.users.blocked }).from(schema.users).where(eq(schema.users.id, s.uid));
+  if (!u || u.blocked) throw new ScopeError("Il tuo account è bloccato o non esiste più.");
   if (s.role === "admin") {
     return filterCustomerId
       ? { kind: "customer", customerId: filterCustomerId, deviceIds: await devicesOf(filterCustomerId) }

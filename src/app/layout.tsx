@@ -7,7 +7,7 @@ import "@fontsource/barlow-semi-condensed/700.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Flotta",
+  title: { default: "Growfleet", template: "%s · Growfleet" },
   description: "Localizzazione e stato dei veicoli",
 };
 

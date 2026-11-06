@@ -352,6 +352,7 @@ async function eccessoVelocita(ctx: Ctx): Promise<ReportResult> {
   const groups: Group[] = [];
   for (const { v, pts } of await tracks(ctx, from, to)) {
     const rows: Row[] = [];
+    const lim = v.speedLimit ?? limit; // il limite impostato nell'anagrafica del veicolo ha la precedenza
     let seg: TrackPoint[] = [];
     const flush = () => {
       if (seg.length >= 2 && seg[seg.length - 1].ts - seg[0].ts >= MIN_S && ok(seg[0].ts)) {
@@ -360,21 +361,21 @@ async function eccessoVelocita(ctx: Ctx): Promise<ReportResult> {
         const sp = seg.map((p) => p.speed ?? 0);
         rows.push({
           start: seg[0].ts, end: seg[seg.length - 1].ts, dur: seg[seg.length - 1].ts - seg[0].ts, km,
-          over: sp.reduce((s, x) => s + x, 0) / sp.length - limit, vmax: Math.max(...sp), limit,
+          over: sp.reduce((s, x) => s + x, 0) / sp.length - lim, vmax: Math.max(...sp), limit: lim,
           fromPlace: place(seg[0]), toPlace: place(seg[seg.length - 1]),
         });
       }
       seg = [];
     };
     for (const p of pts) {
-      const fast = (p.speed ?? 0) > limit;
+      const fast = (p.speed ?? 0) > lim;
       if (fast && seg.length && p.ts - seg[seg.length - 1].ts > 120) flush();
       if (fast) seg.push(p); else if (seg.length) flush();
     }
     flush();
     if (rows.length) groups.push({ title: v.name, rows, totals: { dur: sum(rows, "dur"), km: sum(rows, "km"), vmax: maxOf(rows, "vmax") } });
   }
-  return { columns, groups, notes: [`Limite usato: ${limit} km/h. Sono contati i superamenti di almeno ${MIN_S} secondi.`] };
+  return { columns, groups, notes: [`Limite generale: ${limit} km/h; per i veicoli con un limite nell'anagrafica si usa quello. Sono contati i superamenti di almeno ${MIN_S} secondi.`] };
 }
 
 const RUNNERS: Record<string, (ctx: Ctx) => Promise<ReportResult>> = {

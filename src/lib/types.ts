@@ -28,6 +28,15 @@ export type VehicleState = {
   externalV: number | null;
   gsmSignal: number | null;
   status: VehicleStatus;
+  // dall'anagrafica (se compilata)
+  deviceName?: string; // nome del dispositivo in flespi
+  plate?: string | null;
+  makeModel?: string | null;
+  vtype?: string | null;
+  driver?: string | null;
+  label?: string; // testo dell'etichetta sulla mappa
+  unavailable?: boolean;
+  speedLimit?: number | null;
 };
 
 export type TelemetryEntry = { name: string; value: unknown; ts: number };

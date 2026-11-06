@@ -87,7 +87,7 @@ function state(d: Def, now: number): VehicleState {
     positionTs: t - 8,
     ignition: s.ignition, movement: s.driving,
     fuelLevel: s.fuel, fuelVolume: Math.round(s.fuel * (d.cid === 1002 ? 6 : 0.9)),
-    odometerKm: s.odometer, engineHours: Math.round(d.odoBase / 42),
+    odometerKm: s.odometer, engineHours: Math.round(d.odoBase / 42 + (d.profile === "drive" ? (s.odometer - d.odoBase) / 50 : 0)),
     fuelUsed: Math.round(s.odometer * 0.075 * 10) / 10, gpsMileage: Math.round(s.odometer * 0.31 * 10) / 10,
     batteryV: 4.1, externalV: s.ignition ? 27.9 : 24.6, gsmSignal: 78,
   };
@@ -146,6 +146,14 @@ export async function getTrack(scope: Scope, id: number, from: number, to: numbe
       voltage: (t % 86400) > 7200 && (t % 86400) < 7500 ? 0 : s.ignition ? 27.8 : 24.5 });
   }
   return out;
+}
+
+export async function countersAt(scope: Scope, id: number, from: number) {
+  const d = D.find((x) => x.id === id && inScope(scope, x));
+  if (!d) return null;
+  if (d.profile !== "drive") return { odo: d.odoBase, hours: Math.round(d.odoBase / 42), fuel: Math.round(d.odoBase * 0.075 * 10) / 10 };
+  const s = sampleAt(d, from);
+  return { odo: s.odometer, hours: Math.round(d.odoBase / 42 + (s.odometer - d.odoBase) / 50), fuel: Math.round(s.odometer * 0.075 * 10) / 10 };
 }
 
 export async function listDevices(): Promise<DeviceSummary[]> {

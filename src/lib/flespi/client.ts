@@ -135,6 +135,29 @@ export async function getTrack(scope: Scope, id: number, from: number, to: numbe
     }));
 }
 
+export type Counters = { odo: number | null; hours: number | null; fuel: number | null };
+
+/**
+ * Valori dei contatori (contachilometri, ore motore, carburante consumato) al primo messaggio dopo `from`.
+ * Basta leggere pochi messaggi: è il modo leggero per calcolare km, ore e litri di un mese.
+ */
+export async function countersAt(scope: Scope, id: number, from: number): Promise<Counters | null> {
+  if (!allowed(scope, id)) return null;
+  const msgs = await call<RawMessage>(`/gw/devices/${id}/messages`, {
+    query: {
+      data: JSON.stringify({
+        from, to: Math.min(from + 40 * 86400, Math.floor(Date.now() / 1000)), count: 50,
+        fields: ["timestamp", ...PARAMS.odometerKm, ...PARAMS.engineHours, ...PARAMS.fuelUsed].join(","),
+      }),
+    },
+  });
+  const first = (names: readonly string[]) => {
+    for (const m of msgs) { const v = firstNum(m, names); if (v != null) return v; }
+    return null;
+  };
+  return { odo: first(PARAMS.odometerKm), hours: first(PARAMS.engineHours), fuel: first(PARAMS.fuelUsed) };
+}
+
 /** Tutti i dispositivi visibili al token (per l'assegnazione ai clienti) */
 export async function listDevices(): Promise<DeviceSummary[]> {
   const r = await call<RawDevice>("/gw/devices/all", { query: { fields: "id,name,configuration" } });

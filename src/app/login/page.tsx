@@ -1,14 +1,14 @@
 import { isMock } from "@/lib/env";
 import { LoginForm } from "./LoginForm";
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
-  const { next } = await searchParams;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; bloccato?: string }> }) {
+  const { next, bloccato } = await searchParams;
   return (
     <main className="min-h-full grid md:grid-cols-[1fr_minmax(380px,460px)]">
       <section className="hidden md:flex flex-col justify-end bg-sign text-white p-12 relative overflow-hidden">
         <RoadLines />
         <div className="relative max-w-md">
-          <p className="plate text-6xl font-bold leading-none">Flotta</p>
+          <p className="plate text-6xl font-bold leading-none">Growfleet</p>
           <p className="mt-4 text-lg text-white/85 leading-relaxed">
             Dove sono i tuoi veicoli, se sono accesi e quanta strada hanno fatto.
           </p>
@@ -16,9 +16,12 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       </section>
       <section className="flex flex-col justify-center px-8 py-12 bg-surface">
         <div className="w-full max-w-sm mx-auto">
-          <p className="plate text-3xl font-bold md:hidden mb-8 text-sign">Flotta</p>
+          <p className="plate text-3xl font-bold md:hidden mb-8 text-sign">Growfleet</p>
           <h1 className="text-2xl font-semibold">Accedi</h1>
           <p className="text-muted mt-1">Usa le credenziali che ti abbiamo fornito.</p>
+          {bloccato !== undefined && (
+            <p role="alert" className="mt-4 border-l-4 border-offline bg-asphalt/60 px-3 py-2 text-sm">Il tuo account è stato bloccato o rimosso. Contatta il tuo referente.</p>
+          )}
           <LoginForm next={next ?? ""} />
           {isMock && (
             <div className="mt-8 border-l-4 border-idle bg-asphalt/60 px-4 py-3 text-sm leading-relaxed">

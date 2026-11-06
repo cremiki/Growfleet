@@ -1,4 +1,4 @@
-import { integer, pgSchema, primaryKey, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, date, doublePrecision, integer, pgSchema, primaryKey, serial, text, timestamp } from "drizzle-orm/pg-core";
 
 /**
  * Tutte le tabelle dell'app stanno nello schema Postgres "growfleet":
@@ -33,6 +33,49 @@ export const users = app.table("users", {
   passwordHash: text("password_hash").notNull(),
   role: text("role").$type<Role>().notNull(),
   customerId: integer("customer_id").references(() => customers.id, { onDelete: "cascade" }),
+  blocked: boolean("blocked").default(false).notNull(),
+  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const VEHICLE_TYPES = ["auto", "furgone", "camion", "moto", "macchina", "rimorchio", "persona", "oggetto"] as const;
+export type VehicleType = (typeof VEHICLE_TYPES)[number];
+
+/** Anagrafica del veicolo, collegata al dispositivo flespi tramite il suo ID */
+export const vehicles = app.table("vehicles", {
+  deviceId: integer("device_id").primaryKey(),
+  plate: text("plate"),
+  make: text("make"),
+  model: text("model"),
+  iconText: text("icon_text"),
+  type: text("type").$type<VehicleType>(),
+  year: integer("year"),
+  vin: text("vin"),
+  driver: text("driver"),
+  fuelType: text("fuel_type"),
+  tankL: doublePrecision("tank_l"),
+  consumptionL100: doublePrecision("consumption_l100"),
+  co2GKm: doublePrecision("co2_g_km"),
+  phone: text("phone"),
+  notes: text("notes"),
+  unavailable: boolean("unavailable").default(false).notNull(),
+  speedLimit: integer("speed_limit"),
+  ecoSpeed: integer("eco_speed"),
+  longStopMin: integer("long_stop_min"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Promemoria di manutenzione e scadenze di documenti, per data, chilometri o ore motore */
+export const reminders = app.table("vehicle_reminders", {
+  id: serial("id").primaryKey(),
+  deviceId: integer("device_id").notNull(),
+  kind: text("kind").$type<"manutenzione" | "documento">().notNull(),
+  title: text("title").notNull(),
+  dueDate: date("due_date"),
+  dueKm: doublePrecision("due_km"),
+  dueHours: doublePrecision("due_hours"),
+  notes: text("notes"),
+  doneAt: timestamp("done_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -45,6 +88,8 @@ export const geocache = app.table("geocache", {
 
 export type Customer = typeof customers.$inferSelect;
 export type User = typeof users.$inferSelect;
+export type VehicleProfile = typeof vehicles.$inferSelect;
+export type Reminder = typeof reminders.$inferSelect;
 
 /**
  * Schema SQL equivalente, applicato all'avvio (idempotente).
@@ -77,4 +122,25 @@ CREATE TABLE IF NOT EXISTS growfleet.users (
   customer_id INTEGER REFERENCES growfleet.customers(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE growfleet.users ADD COLUMN IF NOT EXISTS blocked BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE growfleet.users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+CREATE TABLE IF NOT EXISTS growfleet.vehicles (
+  device_id INTEGER PRIMARY KEY,
+  plate TEXT, make TEXT, model TEXT, icon_text TEXT, type TEXT, year INTEGER, vin TEXT, driver TEXT,
+  fuel_type TEXT, tank_l DOUBLE PRECISION, consumption_l100 DOUBLE PRECISION, co2_g_km DOUBLE PRECISION,
+  phone TEXT, notes TEXT, unavailable BOOLEAN NOT NULL DEFAULT false,
+  speed_limit INTEGER, eco_speed INTEGER, long_stop_min INTEGER,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS growfleet.vehicle_reminders (
+  id SERIAL PRIMARY KEY,
+  device_id INTEGER NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('manutenzione','documento')),
+  title TEXT NOT NULL,
+  due_date DATE, due_km DOUBLE PRECISION, due_hours DOUBLE PRECISION,
+  notes TEXT,
+  done_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS vehicle_reminders_device_idx ON growfleet.vehicle_reminders (device_id);
 `;

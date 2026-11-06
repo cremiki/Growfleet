@@ -16,10 +16,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </span>
         )}
         <div className="ml-auto flex items-center gap-3 text-sm">
-          <span className="hidden sm:flex flex-col items-end leading-tight">
+          <Link href="/account" className="hidden sm:flex flex-col items-end leading-tight hover:underline" title="Il mio account">
             <span className="font-medium">{s.name}</span>
             <span className="text-xs text-muted">{s.role === "admin" ? "Team" : s.email}</span>
-          </span>
+          </Link>
           <form action={logout}>
             <button className="px-3 py-1.5 rounded border border-line hover:bg-asphalt">Esci</button>
           </form>

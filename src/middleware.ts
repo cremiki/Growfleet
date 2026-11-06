@@ -6,6 +6,12 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (pathname.startsWith("/login")) {
+    // account bloccato: si esce dalla sessione e si resta sulla pagina di accesso
+    if (req.nextUrl.searchParams.has("bloccato")) {
+      const res = NextResponse.next();
+      res.cookies.delete(SESSION_COOKIE);
+      return res;
+    }
     if (session) return NextResponse.redirect(new URL("/flotta", req.url));
     return NextResponse.next();
   }

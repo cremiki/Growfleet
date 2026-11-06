@@ -54,6 +54,13 @@ async function bootstrap(db: DB) {
       ...[501, 502, 503, 504, 505].map((deviceId) => ({ customerId: rossi.id, deviceId })),
       ...[601, 602, 603, 604].map((deviceId) => ({ customerId: bianchi.id, deviceId })),
     ]).onConflictDoNothing();
+    await db.insert(schema.vehicles).values([
+      { deviceId: 501, plate: "FX 482 KL", make: "Iveco", model: "Daily", type: "furgone", driver: "Luca Bianchi", fuelType: "Diesel", tankL: 90, consumptionL100: 10.5, speedLimit: 110 },
+      { deviceId: 502, plate: "GA 107 RT", make: "Fiat", model: "Ducato", type: "furgone", fuelType: "Diesel", tankL: 90 },
+      { deviceId: 503, plate: "EZ 930 PM", make: "Mercedes", model: "Sprinter", type: "furgone", fuelType: "Diesel", tankL: 75 },
+      { deviceId: 601, plate: "GD 554 LV", make: "Scania", model: "R450", type: "camion", driver: "Paolo Verdi", fuelType: "Diesel", tankL: 600, consumptionL100: 29, speedLimit: 90 },
+      { deviceId: 602, plate: "FN 309 CE", make: "Volvo", model: "FH", type: "camion", fuelType: "Diesel", tankL: 600 },
+    ]).onConflictDoNothing();
     await db.insert(schema.users).values([
       { email: "admin@demo.it", name: "Team operativo", passwordHash: hash, role: "admin" },
       { email: "cliente@demo.it", name: "Marco Rossi", passwordHash: hash, role: "customer", customerId: rossi.id },
