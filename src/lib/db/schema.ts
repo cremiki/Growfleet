@@ -36,6 +36,13 @@ export const users = app.table("users", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+/** Cache degli indirizzi (geocodifica inversa), chiave = "lat,lon" arrotondati a 4 decimali (~10 m) */
+export const geocache = app.table("geocache", {
+  key: text("key").primaryKey(),
+  address: text("address").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export type Customer = typeof customers.$inferSelect;
 export type User = typeof users.$inferSelect;
 
@@ -56,6 +63,11 @@ CREATE TABLE IF NOT EXISTS growfleet.customer_devices (
   PRIMARY KEY (customer_id, device_id)
 );
 CREATE INDEX IF NOT EXISTS customer_devices_device_idx ON growfleet.customer_devices (device_id);
+CREATE TABLE IF NOT EXISTS growfleet.geocache (
+  key TEXT PRIMARY KEY,
+  address TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 CREATE TABLE IF NOT EXISTS growfleet.users (
   id SERIAL PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,

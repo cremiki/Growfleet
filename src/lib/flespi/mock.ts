@@ -88,6 +88,7 @@ function state(d: Def, now: number): VehicleState {
     ignition: s.ignition, movement: s.driving,
     fuelLevel: s.fuel, fuelVolume: Math.round(s.fuel * (d.cid === 1002 ? 6 : 0.9)),
     odometerKm: s.odometer, engineHours: Math.round(d.odoBase / 42),
+    fuelUsed: Math.round(s.odometer * 0.075 * 10) / 10, gpsMileage: Math.round(s.odometer * 0.31 * 10) / 10,
     batteryV: 4.1, externalV: s.ignition ? 27.9 : 24.6, gsmSignal: 78,
   };
   return { ...base, status: computeStatus(base, now) };
@@ -109,6 +110,7 @@ export async function getVehicle(scope: Scope, id: number): Promise<VehicleDetai
   const tel: TelemetryEntry[] = [
     ["battery.voltage", st.batteryV], ["can.fuel.level", st.fuelLevel], ["can.fuel.volume", st.fuelVolume],
     ["can.vehicle.mileage", st.odometerKm], ["can.engine.motorhours", st.engineHours],
+    ["can.fuel.consumed", st.fuelUsed], ["vehicle.mileage", st.gpsMileage], ["ambient.air.temperature", 14],
     ["device.type.id", 742], ["engine.ignition.status", st.ignition], ["external.powersource.voltage", st.externalV],
     ["gsm.signal.level", st.gsmSignal], ["ident", st.ident], ["movement.status", st.movement],
     ["position.altitude", 38], ["position.direction", st.course], ["position.latitude", st.lat],
@@ -128,7 +130,8 @@ export async function getTrack(scope: Scope, id: number, from: number, to: numbe
     const s = sampleAt(d, t);
     // da fermo il tracker invia meno spesso
     if (!s.driving && t % 300 >= 30) continue;
-    out.push({ ts: t, lat: s.p[0], lon: s.p[1], speed: s.speed, ignition: s.ignition });
+    out.push({ ts: t, lat: s.p[0], lon: s.p[1], speed: s.speed, ignition: s.ignition,
+      odometer: s.odometer, fuelUsed: Math.round(s.odometer * 0.075 * 10) / 10 });
   }
   return out;
 }

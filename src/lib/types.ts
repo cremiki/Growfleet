@@ -22,6 +22,8 @@ export type VehicleState = {
   fuelVolume: number | null; // litri
   odometerKm: number | null;
   engineHours: number | null;
+  fuelUsed: number | null; // litri totali consumati (CAN)
+  gpsMileage: number | null; // km calcolati dal tracker
   batteryV: number | null;
   externalV: number | null;
   gsmSignal: number | null;
@@ -38,6 +40,8 @@ export type TrackPoint = {
   lon: number;
   speed: number | null;
   ignition: boolean | null;
+  odometer: number | null; // km (CAN o tracker)
+  fuelUsed: number | null; // litri totali consumati (contatore CAN)
 };
 
 export type DeviceSummary = { id: number; name: string; ident: string };

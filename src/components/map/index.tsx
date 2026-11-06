@@ -2,25 +2,18 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import type { FleetMapProps, MapProvider, TrackMapProps } from "./shared";
+import type { LiveMapProps, MapProvider } from "./shared";
 
-export type { MapProvider } from "./shared";
+export type { MapProvider, RouteOverlay, Focus } from "./shared";
 
 const loading = () => <div className="h-full w-full bg-[#dfe4e8]" aria-busy="true" />;
-
-const LeafletFleet = dynamic(() => import("./LeafletMaps").then((m) => m.LeafletFleetMap), { ssr: false, loading });
-const LeafletTrack = dynamic(() => import("./LeafletMaps").then((m) => m.LeafletTrackMap), { ssr: false, loading });
-const GoogleFleet = dynamic(() => import("./GoogleMaps").then((m) => m.GoogleFleetMap), { ssr: false, loading });
-const GoogleTrack = dynamic(() => import("./GoogleMaps").then((m) => m.GoogleTrackMap), { ssr: false, loading });
+const Leaflet = dynamic(() => import("./LeafletLiveMap").then((m) => m.LeafletLiveMap), { ssr: false, loading });
+const Google = dynamic(() => import("./GoogleLiveMap").then((m) => m.GoogleLiveMap), { ssr: false, loading });
 
 export const googleAvailable = !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-export function FleetMap(p: FleetMapProps & { provider: MapProvider }) {
-  return p.provider === "google" && googleAvailable ? <GoogleFleet {...p} /> : <LeafletFleet {...p} />;
-}
-
-export function TrackMap(p: TrackMapProps & { provider: MapProvider }) {
-  return p.provider === "google" && googleAvailable ? <GoogleTrack {...p} /> : <LeafletTrack {...p} />;
+export function LiveMap(p: LiveMapProps & { provider: MapProvider }) {
+  return p.provider === "google" && googleAvailable ? <Google {...p} /> : <Leaflet {...p} />;
 }
 
 const STORAGE_KEY = "fleet.mapProvider";
@@ -45,12 +38,12 @@ export function MapSwitch({ value, onChange }: { value: MapProvider; onChange: (
   const opt = (id: MapProvider, label: string, disabled = false) => (
     <button type="button" onClick={() => onChange(id)} disabled={disabled} aria-pressed={value === id}
       title={disabled ? "Aggiungi NEXT_PUBLIC_GOOGLE_MAPS_API_KEY per attivare Google Maps" : undefined}
-      className={`px-3 py-1.5 text-sm font-medium ${value === id ? "bg-ink text-white" : "bg-white text-ink hover:bg-asphalt"} disabled:text-muted/60 disabled:hover:bg-white disabled:cursor-not-allowed`}>
+      className={`px-2.5 py-1 text-[13px] font-medium ${value === id ? "bg-ink text-white" : "bg-white text-ink hover:bg-asphalt"} disabled:text-muted/60 disabled:hover:bg-white disabled:cursor-not-allowed`}>
       {label}
     </button>
   );
   return (
-    <div className="inline-flex rounded-md overflow-hidden border border-line shadow-sm" role="group" aria-label="Tipo di mappa">
+    <div className="inline-flex rounded overflow-hidden border border-line shadow-sm" role="group" aria-label="Tipo di mappa">
       {opt("osm", "OpenStreetMap")}
       {opt("google", "Google", !googleAvailable)}
     </div>

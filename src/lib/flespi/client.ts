@@ -2,7 +2,7 @@ import "server-only";
 import { env } from "../env";
 import type { Scope } from "../auth/session";
 import type { DeviceSummary, TelemetryEntry, TrackPoint, VehicleDetail, VehicleState } from "../types";
-import { LIST_PARAMS, normalize, telemetryToEntries, type RawDevice } from "./normalize";
+import { LIST_PARAMS, normalize, PARAMS, telemetryToEntries, type RawDevice } from "./normalize";
 import { buildDiagnosis, type Diagnosis } from "./diagnose";
 
 const BASE = "https://flespi.io";
@@ -101,10 +101,11 @@ export async function getVehicle(scope: Scope, id: number): Promise<VehicleDetai
 
 type RawMessage = {
   timestamp: number;
-  "position.latitude"?: number;
-  "position.longitude"?: number;
-  "position.speed"?: number;
-  "engine.ignition.status"?: boolean;
+  [k: string]: unknown;
+};
+const firstNum = (m: RawMessage, names: readonly string[]) => {
+  for (const n of names) if (typeof m[n] === "number") return m[n] as number;
+  return null;
 };
 
 export async function getTrack(scope: Scope, id: number, from: number, to: number): Promise<TrackPoint[] | null> {
@@ -115,7 +116,8 @@ export async function getTrack(scope: Scope, id: number, from: number, to: numbe
       data: JSON.stringify({
         from,
         to,
-        fields: "timestamp,position.latitude,position.longitude,position.speed,engine.ignition.status",
+        fields: ["timestamp", "position.latitude", "position.longitude", "position.speed", "engine.ignition.status",
+          ...PARAMS.odometerKm, ...PARAMS.fuelUsed].join(","),
       }),
     },
   });
@@ -123,10 +125,12 @@ export async function getTrack(scope: Scope, id: number, from: number, to: numbe
     .filter((m) => typeof m["position.latitude"] === "number" && typeof m["position.longitude"] === "number")
     .map((m) => ({
       ts: m.timestamp,
-      lat: m["position.latitude"]!,
-      lon: m["position.longitude"]!,
-      speed: m["position.speed"] ?? null,
-      ignition: m["engine.ignition.status"] ?? null,
+      lat: m["position.latitude"] as number,
+      lon: m["position.longitude"] as number,
+      speed: typeof m["position.speed"] === "number" ? m["position.speed"] : null,
+      ignition: typeof m["engine.ignition.status"] === "boolean" ? m["engine.ignition.status"] : null,
+      odometer: firstNum(m, PARAMS.odometerKm),
+      fuelUsed: firstNum(m, PARAMS.fuelUsed),
     }));
 }
 
