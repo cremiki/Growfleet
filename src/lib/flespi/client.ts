@@ -158,7 +158,9 @@ export async function diagnose(): Promise<Diagnosis> {
   let messages: Awaited<ReturnType<typeof attempt<unknown[]>>> | null = null;
   let messagesDevice: number | null = null;
   if (devices.ok && telemetry.ok) {
-    const withData = telemetry.value.find((t) => t.telemetry && Object.keys(t.telemetry).length > 0);
+    // il dispositivo che ha inviato dati più di recente
+    const lastTs = (t: RawTelemetry) => Math.max(0, ...Object.values(t.telemetry ?? {}).map((v) => v?.ts ?? 0));
+    const withData = [...telemetry.value].filter((t) => lastTs(t) > 0).sort((x, y) => lastTs(y) - lastTs(x))[0];
     if (withData) {
       messagesDevice = withData.id;
       const now = Math.floor(Date.now() / 1000);

@@ -140,7 +140,7 @@ export async function listDevices(): Promise<DeviceSummary[]> {
 export async function diagnose(): Promise<Diagnosis> {
   const devices = await Promise.all(D.map(async (d) => {
     const v = await getVehicle({ kind: "all" }, d.id);
-    const tel = Object.fromEntries((v?.telemetry ?? []).map((t) => [t.name, t.value]));
+    const tel = Object.fromEntries((v?.telemetry ?? []).map((t) => [t.name, { value: t.value, ts: t.ts }]));
     return coverage({ id: d.id, name: d.name, configuration: { ident: d.ident }, messages_ttl: 31536000 }, tel);
   }));
   return {

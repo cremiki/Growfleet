@@ -60,37 +60,48 @@ export default async function FlespiPage() {
           <section>
             <h2 className="plate text-2xl font-bold">Parametri letti dai dispositivi</h2>
             <p className="text-muted mt-1">
-              Per ogni dato mostrato nell&apos;app, il parametro flespi da cui viene letto. Un trattino vuol dire che il dispositivo non lo invia
-              oppure lo chiama in un altro modo: in quel caso guarda la colonna &laquo;Altri parametri utili&raquo; e indicami il nome giusto.
+              Per ogni dato mostrato nell&apos;app, il parametro flespi da cui viene letto. &laquo;Non trovato&raquo; vuol dire che il dispositivo
+              non lo invia oppure lo chiama in un altro modo: in quel caso cerca il nome giusto tra gli altri parametri elencati sotto.
             </p>
-            <div className="mt-4 overflow-x-auto bg-surface border border-line">
-              <table className="text-sm min-w-full">
-                <thead className="text-left text-muted">
-                  <tr className="border-b border-line">
-                    <th className="p-2.5 font-medium">Dispositivo</th>
-                    {METRICS.map((m) => <th key={m.key} className="p-2.5 font-medium whitespace-nowrap">{m.label}</th>)}
-                    <th className="p-2.5 font-medium">Altri parametri utili</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.devices.map((dev) => (
-                    <tr key={dev.id} className="border-b border-line last:border-0 align-top">
-                      <td className="p-2.5">
-                        <span className="font-semibold block whitespace-nowrap">{dev.name}</span>
-                        <span className="text-xs text-muted">ID {dev.id}, {dev.paramCount} parametri</span>
-                        {dev.messagesTtl === 0 && <span className="block text-xs text-offline">Messaggi non conservati</span>}
-                      </td>
-                      {METRICS.map((m) => (
-                        <td key={m.key} className="p-2.5 whitespace-nowrap">
-                          {dev.found[m.key] ? <span className="text-moving">{dev.found[m.key]}</span> : <span className="text-muted">—</span>}
-                        </td>
-                      ))}
-                      <td className="p-2.5 text-xs text-muted">{dev.candidates.join(", ") || "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ul className="mt-4 space-y-4">
+              {d.devices.map((dev) => (
+                <li key={dev.id} className="bg-surface border border-line">
+                  <div className="px-4 py-3 border-b border-line flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                    <span className="plate text-xl font-bold">{dev.name}</span>
+                    <span className="text-sm text-muted">ID {dev.id}{dev.ident ? `, IMEI ${dev.ident}` : ""}</span>
+                    <span className="text-sm text-muted sm:ml-auto">
+                      {dev.paramCount === 0 ? "Non ha ancora inviato dati" :
+                        `${dev.paramCount} parametri, ultimo dato ${dev.lastData ? fmtDateTime(dev.lastData) : "—"}`}
+                    </span>
+                    {dev.messagesTtl === 0 && <span className="text-sm text-offline w-full">Messaggi non conservati (messages_ttl = 0): lo storico percorsi resterà vuoto.</span>}
+                  </div>
+                  {dev.paramCount > 0 && (
+                    <>
+                      <dl className="grid grid-cols-2 md:grid-cols-4">
+                        {METRICS.map((m) => (
+                          <div key={m.key} className="px-4 py-2.5 border-b border-r border-line">
+                            <dt className="text-xs text-muted">{m.label}</dt>
+                            <dd className={`text-sm mt-0.5 break-all ${dev.found[m.key] ? "text-moving font-medium" : "text-offline"}`}>
+                              {dev.found[m.key] ?? "non trovato"}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                      {dev.candidates.length > 0 && (
+                        <div className="px-4 py-3">
+                          <p className="text-xs text-muted">Altri parametri che potrebbero servire:</p>
+                          <p className="mt-1.5 flex flex-wrap gap-1.5">
+                            {dev.candidates.map((c) => (
+                              <span key={c} className="text-xs bg-asphalt border border-line rounded px-1.5 py-0.5 break-all">{c}</span>
+                            ))}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
           </section>
         )}
 
