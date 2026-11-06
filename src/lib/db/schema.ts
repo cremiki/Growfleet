@@ -1,14 +1,20 @@
-import { integer, pgTable, primaryKey, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { integer, pgSchema, primaryKey, serial, text, timestamp } from "drizzle-orm/pg-core";
+
+/**
+ * Tutte le tabelle dell'app stanno nello schema Postgres "growfleet":
+ * così non si scontrano con tabelle di altre applicazioni nello stesso database.
+ */
+export const app = pgSchema("growfleet");
 
 /** Un cliente del servizio. I suoi veicoli sono quelli assegnati in customer_devices. */
-export const customers = pgTable("customers", {
+export const customers = app.table("customers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 /** Assegnazione dei dispositivi flespi (per ID) ai clienti */
-export const customerDevices = pgTable(
+export const customerDevices = app.table(
   "customer_devices",
   {
     customerId: integer("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
@@ -20,7 +26,7 @@ export const customerDevices = pgTable(
 export type Role = "admin" | "customer";
 
 /** Utenti: 'admin' = il tuo team (vede tutto), 'customer' = utente di un cliente (vede solo i veicoli assegnati). */
-export const users = pgTable("users", {
+export const users = app.table("users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
@@ -38,24 +44,25 @@ export type User = typeof users.$inferSelect;
  * Quando il progetto cresce conviene passare a migrazioni drizzle-kit.
  */
 export const BOOTSTRAP_SQL = `
-CREATE TABLE IF NOT EXISTS customers (
+CREATE SCHEMA IF NOT EXISTS growfleet;
+CREATE TABLE IF NOT EXISTS growfleet.customers (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE TABLE IF NOT EXISTS customer_devices (
-  customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS growfleet.customer_devices (
+  customer_id INTEGER NOT NULL REFERENCES growfleet.customers(id) ON DELETE CASCADE,
   device_id INTEGER NOT NULL,
   PRIMARY KEY (customer_id, device_id)
 );
-CREATE INDEX IF NOT EXISTS customer_devices_device_idx ON customer_devices (device_id);
-CREATE TABLE IF NOT EXISTS users (
+CREATE INDEX IF NOT EXISTS customer_devices_device_idx ON growfleet.customer_devices (device_id);
+CREATE TABLE IF NOT EXISTS growfleet.users (
   id SERIAL PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('admin','customer')),
-  customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE,
+  customer_id INTEGER REFERENCES growfleet.customers(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 `;
