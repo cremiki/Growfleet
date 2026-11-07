@@ -28,7 +28,7 @@ export type LiveMapProps = {
 
 export const ITALY_CENTER: [number, number] = [42.5, 12.5];
 export const ROUTE_COLOR = "#2f80ed";
-export const HIGHLIGHT_COLOR = "#0b4f9c";
+export const HIGHLIGHT_COLOR = "#e53935"; // tratto selezionato nella timeline, in rosso come in Piramis
 
 /** Sagome bianche 24x24 per tipo di veicolo, usate quando il veicolo è fermo */
 export const TYPE_GLYPH: Record<string, string> = {

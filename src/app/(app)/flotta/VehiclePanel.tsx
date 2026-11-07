@@ -227,11 +227,12 @@ const fromInputDate = (s: string) => Math.floor(new Date(`${s}T00:00:00`).getTim
 function RoutesTab({ v, onRoute, onFocus }: { v: VehicleState; onRoute: (r: RouteOverlay | null) => void; onFocus: (f: Focus) => void }) {
   const todayStart = startOfDay(Date.now() / 1000);
   const [day, setDay] = useState(todayStart);
-  const to = Math.min(day + 86400, Math.floor(Date.now() / 1000));
-  const { points, error } = useTrack(v.id, day, day === todayStart ? to : day + 86400);
+  const isToday = day === todayStart;
+  // oggi: intervallo fisso e aggiornamento ogni minuto (prima la fine cambiava a ogni ridisegno e il percorso si ricaricava di continuo)
+  const { points, error } = useTrack(v.id, day, day + 86400, isToday ? 60_000 : undefined);
   const [active, setActive] = useState<number | null>(null);
 
-  const timeline = useMemo(() => (points ? buildTimeline(points, day, day === todayStart ? Math.floor(Date.now() / 1000) : day + 86400) : null), [points]); // eslint-disable-line react-hooks/exhaustive-deps
+  const timeline = useMemo(() => (points ? buildTimeline(points, day, isToday ? Math.floor(Date.now() / 1000) : day + 86400) : null), [points]); // eslint-disable-line react-hooks/exhaustive-deps
   const stops = timeline?.items.filter((i): i is Extract<TimelineItem, { kind: "stop" }> => i.kind === "stop") ?? [];
   const address = useAddresses(stops);
 
@@ -240,7 +241,7 @@ function RoutesTab({ v, onRoute, onFocus }: { v: VehicleState; onRoute: (r: Rout
     if (!points || !timeline) { onRoute(null); return; }
     const item = active != null ? timeline.items[active] : null;
     onRoute({
-      key: `${v.id}-${day}-${points.length}`,
+      key: `${v.id}-${day}`, // stessa chiave quando arrivano nuovi punti: la mappa non si risposta da sola
       points,
       stops,
       highlight: item?.kind === "trip" ? [item.startIdx, item.endIdx] : null,

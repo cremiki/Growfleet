@@ -106,7 +106,10 @@ export function LeafletLiveMap({ vehicles, selectedId, onSelect, route, focus, f
           <Polyline positions={line} pathOptions={{ color: ROUTE_COLOR, weight: 4, dashArray: hl ? "6 6" : undefined, opacity: hl ? 0.6 : 1 }} />
         </>
       )}
-      {hl && hl.length > 1 && <Polyline positions={hl} pathOptions={{ color: HIGHLIGHT_COLOR, weight: 6 }} />}
+      {hl && hl.length > 1 && <>
+        <Polyline positions={hl} pathOptions={{ color: "#fff", weight: 9, opacity: 0.95 }} />
+        <Polyline positions={hl} pathOptions={{ color: HIGHLIGHT_COLOR, weight: 6 }} />
+      </>}
       {pin && <Marker position={[pin.lat, pin.lon]} icon={htmlIcon(pinHtml(pin.label))} zIndexOffset={1500} riseOnHover />}
       {route?.stops.map((s) => (
         <Marker key={`s${s.n}`} position={[s.lat, s.lon]} icon={htmlIcon(stopMarkerHtml(s.n))} zIndexOffset={500} />

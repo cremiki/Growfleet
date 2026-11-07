@@ -14,10 +14,11 @@ export function useTrack(id: number, from: number, to: number, refreshMs?: numbe
     setError(null);
     const load = async () => {
       try {
-        const end = refreshMs ? Math.floor(Date.now() / 1000) : to;
+        const end = refreshMs ? Math.min(Math.floor(Date.now() / 1000), to || Infinity) : to;
         const r = await fetch(`/api/vehicles/${id}/track?from=${Math.floor(from)}&to=${Math.ceil(end)}`, { cache: "no-store" });
         const b = await r.json();
         if (!r.ok) throw new Error(b.error || "Impossibile caricare il percorso.");
+        // all'aggiornamento i punti vecchi restano a video finché arrivano i nuovi
         if (alive) { setPoints(b.points); setError(null); }
       } catch (e) {
         if (alive) setError((e as Error).message);

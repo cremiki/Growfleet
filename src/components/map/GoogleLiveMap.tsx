@@ -79,7 +79,10 @@ function Lines({ route }: { route: RouteOverlay | null }) {
       new google.maps.Polyline({ path, strokeColor: "#fff", strokeWeight: 7, strokeOpacity: 0.9, map }),
       new google.maps.Polyline({ path, strokeColor: ROUTE_COLOR, strokeWeight: 4, strokeOpacity: hl ? 0.5 : 1, map }),
     ];
-    if (hl && hl.length > 1) objs.push(new google.maps.Polyline({ path: hl, strokeColor: HIGHLIGHT_COLOR, strokeWeight: 6, map }));
+    if (hl && hl.length > 1) objs.push(
+      new google.maps.Polyline({ path: hl, strokeColor: "#fff", strokeWeight: 9, strokeOpacity: 0.95, map }),
+      new google.maps.Polyline({ path: hl, strokeColor: HIGHLIGHT_COLOR, strokeWeight: 6, map }),
+    );
     return () => objs.forEach((o) => o.setMap(null));
   }, [map, route]);
   return null;
